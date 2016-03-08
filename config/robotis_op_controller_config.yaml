@@ -1,1 +1,1 @@
-control_rate: 10.0 # [Hz]
+control_rate: 50.0 # [Hz]
