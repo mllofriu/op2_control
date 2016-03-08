@@ -101,11 +101,13 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
     registerInterface(&joint_state_interface_);
     registerInterface(&pos_joint_interface_);
 
+    // Set goals to current positions
     for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
         int value, error;
         if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
         {
-            pos_[id-1] = MX28::Value2Angle(value);    
+            cmd_[id-1] = value;    
+	    pos_[id-1] = value;
         }
     }
 
@@ -122,7 +124,6 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
     imu_sensor_interface_.registerHandle(imu_sensor_handle);
     registerInterface(&imu_sensor_interface_);
 
-    cm730_->MakeBulkReadPacket();
 }
 
 RobotisOPHardwareInterface::RobotisOPHardwareInterface(RobotisOPHardwareInterface const&)
@@ -150,20 +151,10 @@ double lowPassFilter(double alpha, double x_new, double x_old)
     return alpha*x_new + (1.0-alpha)*x_old;
 }
 
-void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
+void RobotisOPHardwareInterface::readMotors(int * ids, int numMotors)
 {
+    cm730_->MakeBulkReadMotorData(ids, numMotors);
     cm730_->BulkRead();
-    /*if ( != CM730::SUCCESS){
-        ROS_ERROR("Error while reading bulk");
-    }*/
-    
-    /*for (int p = 0; p < 20; p++){
-        for (int i = 0; i < 400; i+=2){
-            if(cm730_->m_BulkReadData[p].ReadWord(i)!= 0)
-                ROS_INFO("%d, %d, %d", p, i, cm730_->m_BulkReadData[p].ReadWord(i));
-        }
-    }*/
-   
     for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
         if (cm730_->m_BulkReadData[id].error > 0){
             ROS_ERROR("Error on read data for motor %d", id);
@@ -174,41 +165,34 @@ void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
         vel_[id-1] = MX28::Value2Angle(vel) * (3.14159 / 180.0); 
         int load = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_LOAD_L);
         eff_dummy_[id-1] = load;       
-    }
+    }   
+    
 
-/*
-    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
+}
+
+void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
+{
+    int rLeg[6] = {7,9,11,13,15,17};
+    readMotors(rLeg, 6);
+    int lLeg[6] = {8, 10,12,14,16,18};
+    readMotors(lLeg, 6);
+    int rArm[3] = {1,3,5};
+    readMotors(rArm, 3);
+    int lArm[3] = {2,4,6};
+    readMotors(lArm, 3);
+    int head[2] = {19,20};
+    readMotors(head, 2);
+
+    /*
+for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
         int value, error;
         if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
         {
-            //int val = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
-            pos_[id-1] = MX28::Value2Angle(value) * 3.14159 / 180.0;    
+		pos_[id-1] = MX28::Value2Angle(pos) * (3.14159 / 180.0);
         }
-
-    }*/
-
-
-    /*for (unsigned int i = 0; i < JointData::NUMBER_OF_JOINTS-1; i++)
-    {
-        cmd_[i] = std::numeric_limits<double>::quiet_NaN();
-       // pos_[i] = std::numeric_limits<double>::quiet_NaN();
-        vel_[i] = std::numeric_limits<double>::quiet_NaN();
-        eff_dummy_[i] = std::numeric_limits<double>::quiet_NaN();
     }
-
-    for (unsigned int joint_index = 1; joint_index < JointData::NUMBER_OF_JOINTS; joint_index++)
-    {
-        int id_index = joint_index-1;
-        double new_pos = angles::from_degrees(MotionStatus::m_CurrentJoints.GetAngle(joint_index)+ros_joint_offsets[joint_index]);
-        vel_[id_index] = (new_pos - pos_[id_index])/(double)period.toSec();
-        pos_[id_index]= new_pos;
-        //reading velocity and acceleration with the current firmware is not possible without jamming the cm730, state 05/2015
-    }
-
-	int value, error;*/
-   
-
-
+*/
+    // TODO: put this back in CM730.cpp
     //IMU
     double filter_alpha = 0.5;
 
@@ -238,38 +222,16 @@ void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
 
 void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 {
-    if(!controller_running_)
+    int param[(JointData::NUMBER_OF_JOINTS-1) * 2];
+    int n = 0;
+    int joint_num = 0;
+    for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
     {
-        if (!std::isnan(cmd_[0]))
-        {
-            setBlockWrite(false);
-            controller_running_=true;
-            return;
-        }
+        param[n++] = id;
+        param[n++] = cmd_[id-1];
+        joint_num++;
     }
-
-    if(block_write_)
-    {
-        return;
-    }
-
-    for (unsigned int joint_index = 0; joint_index < JointData::NUMBER_OF_JOINTS-1; joint_index++)
-    {
-        int id_index = joint_index+1;
-        if(MotionStatus::m_CurrentJoints.GetEnable(id_index))
-        {
-            if (std::isnan(cmd_[joint_index]))
-            {
-                //ROS_WARN("Cmd %i NAN", joint_index);
-                continue;
-            }
-            else
-            {
-
-                MotionStatus::m_CurrentJoints.SetAngle(id_index,angles::to_degrees(cmd_[joint_index])+ros_joint_offsets[joint_index]);
-            }
-        }
-    }
+    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 2, JointData::NUMBER_OF_JOINTS-1, param);
 }
 
 

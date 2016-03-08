@@ -35,6 +35,9 @@ public:
     void read(ros::Time time, ros::Duration period);
     void write(ros::Time time, ros::Duration period);
 
+    // Helper functions
+    void readMotors(int * ids, int numMotors);
+
     //Acess to ROBOTIS Interface
     void setPIDGains(int id, double p_gain, double i_gain, double d_gain);
     void setJointStateRate(double joint_state_rate);

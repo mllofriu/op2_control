@@ -391,6 +391,27 @@ unsigned char CM730::CalculateChecksum(unsigned char *packet)
 
 void 
 __attribute__((optimize("O0"))) 
+CM730::MakeBulkReadMotorData(int * ids, int numMotors)
+{
+    int number = 0;
+
+    m_BulkReadTxPacket[ID]              = (unsigned char)ID_BROADCAST;
+    m_BulkReadTxPacket[INSTRUCTION]     = INST_BULK_READ;
+    m_BulkReadTxPacket[PARAMETER]       = (unsigned char)0x0;
+
+    for(int id = 0; id < numMotors; id++)
+    {
+            m_BulkReadTxPacket[PARAMETER+3*number+1] = 6;   // length - read pos, vel, load
+            m_BulkReadTxPacket[PARAMETER+3*number+2] = ids[id];  // id
+            m_BulkReadTxPacket[PARAMETER+3*number+3] = MX28::P_PRESENT_POSITION_L; // start address
+            number++;
+    }
+
+    m_BulkReadTxPacket[LENGTH]          = (number * 3) + 3;
+}
+
+void 
+__attribute__((optimize("O0"))) 
 CM730::MakeBulkReadPacket()
 {
     int number = 0;
@@ -409,10 +430,11 @@ CM730::MakeBulkReadPacket()
 */
     for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++)
     {
-            m_BulkReadTxPacket[PARAMETER+3*number+1] = 6;   // length
-            m_BulkReadTxPacket[PARAMETER+3*number+2] = id;  // id
+            m_BulkReadTxPacket[PARAMETER+3*number+1] = 2;   // length
+            m_BulkReadTxPacket[PARAMETER+3*number+2] = 9;  // id
             m_BulkReadTxPacket[PARAMETER+3*number+3] = MX28::P_PRESENT_POSITION_L; // start address
             number++;
+
     }
 
     /*if(Ping(FSR::ID_L_FSR, 0) == SUCCESS)
