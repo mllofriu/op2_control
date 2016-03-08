@@ -168,8 +168,12 @@ void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
         if (cm730_->m_BulkReadData[id].error > 0){
             ROS_ERROR("Error on read data for motor %d", id);
         }
-        int val = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
-        pos_[id-1] = MX28::Value2Angle(val) * (3.14159 / 180.0);    
+        int pos = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
+        pos_[id-1] = MX28::Value2Angle(pos) * (3.14159 / 180.0);   
+        int vel = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_SPEED_L);
+        vel_[id-1] = MX28::Value2Angle(vel) * (3.14159 / 180.0); 
+        int load = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_LOAD_L);
+        eff_dummy_[id-1] = load;       
     }
 
 /*
