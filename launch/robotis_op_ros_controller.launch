@@ -17,5 +17,4 @@
     </node>   
 
     <include file="$(find robotis_op_ros_control)/launch/load_position_controllers.launch" />
-
 </launch>

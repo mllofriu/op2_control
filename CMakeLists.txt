@@ -26,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 # Darwin-OP interface library
 
-SET(DARWIN_LIB_PATH ../robotis_op_framework/)
+SET(DARWIN_LIB_PATH /robotis/)
 find_package(darwin_lib REQUIRED)
 #MESSAGE(STATUS "${darwin_lib_INCLUDE_DIR}")
 

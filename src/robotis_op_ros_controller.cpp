@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
     ros::NodeHandle nh;
     double control_rate;
-    nh.param("robotis_op_ros_controller/control_rate", control_rate, 125.0);
+    nh.param("robotis_op_ros_controller/control_rate", control_rate, 50.0);
 
     robotis_op::RobotisOPRosControllerNode robotis_op_ros_controller_node;
 

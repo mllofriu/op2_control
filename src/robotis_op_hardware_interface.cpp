@@ -2,6 +2,9 @@
 #include <angles/angles.h>
 #include <math.h>
 
+#include <MX28.h>
+#include <JointData.h>
+
 #include <std_msgs/Float64.h>
 
 namespace robotis_op
@@ -67,67 +70,21 @@ const int RobotisOPHardwareInterface::ros_joint_offsets[JointData::NUMBER_OF_JOI
 
 RobotisOPHardwareInterface::Ptr RobotisOPHardwareInterface::singelton = RobotisOPHardwareInterface::Ptr();
 
-RobotisOPHardwareInterface::RobotisOPHardwareInterface()
-    : MotionModule()
-    , hardware_interface::RobotHW()
+RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
+    hardware_interface::RobotHW()
     , joint_state_intervall_(20.0)
     , last_joint_state_read_(ros::Time::now())
 {
-    print_check_fall_debug_info_ = false;
-    block_write_ = true;
-    controller_running_ = false;
-
     ros::NodeHandle nh;
-    int wakeup_motion;
-    nh.getParam("/robotis_op/robotis_op_ros_controller/wake_up_motion",wakeup_motion);
 
     // Initialize ROBOTIS-OP  Framework
-    cm730_device_ = std::string("/dev/ttyUSB0");
-    action_file_ = std::string("/robotis/Data/motion_4096.bin");
-    config_file_ = std::string("/robotis/Data/config.ini");
-
-    if(false == Action::GetInstance()->LoadFile((char *)action_file_.c_str()))
+    linux_cm730_ = new Robot::LinuxCM730("/dev/ttyUSB0");
+    cm730_ = new Robot::CM730(linux_cm730_);
+    if(!cm730_->Connect())
     {
-        ROS_ERROR("Reading Action File failed!");
+        ROS_ERROR("Failed to connect CM-730\n");
     }
 
-
-    linux_cm730_ = new LinuxCM730((char *)cm730_device_.c_str());
-    cm730_ = new CM730(linux_cm730_);
-    MotionManager::GetInstance();
-
-    if(false == MotionManager::GetInstance()->Initialize(cm730_))
-    {
-        ROS_ERROR("Initializing Motion Manager failed! ");
-    }
-
-    minIni ini =  minIni(config_file_);
-    MotionManager::GetInstance()->LoadINISettings(&ini);
-
-    MotionManager::GetInstance()->AddModule((MotionModule*)Action::GetInstance());
-
-
-    motion_timer_ = new LinuxMotionTimer(MotionManager::GetInstance());
-    ROS_INFO("Starting Motion Timer...");
-    motion_timer_->Start();
-    ROS_INFO("Finished starting Motion Timer");
-
-    MotionManager::GetInstance()->SetEnable(true);
-
-    /** Init(stand up) pose */
-    ROS_INFO("Wake up position is %i",wakeup_motion);
-    if(Action::GetInstance()->Start(wakeup_motion))
-        ROS_INFO("Moving to wake up position ...");
-    else
-        ROS_ERROR("Wake up action failed");
-    while(Action::GetInstance()->IsRunning())
-    {
-        usleep(8*1000);
-    }
-
-    MotionManager::GetInstance()->AddModule((MotionModule*)Walking::GetInstance());
-    MotionManager::GetInstance()->AddModule((MotionModule*)Head::GetInstance());
-    MotionStatus::m_CurrentJoints.SetEnableBody(true,true);
 
     /** register joints */
     // dispatching joints
@@ -144,6 +101,16 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface()
     registerInterface(&joint_state_interface_);
     registerInterface(&pos_joint_interface_);
 
+    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
+        int value, error;
+        if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
+        {
+            pos_[id-1] = MX28::Value2Angle(value);    
+        }
+    }
+
+
+
     /** register sensors */
     // IMU
     imu_data_.name = "imu";
@@ -155,6 +122,7 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface()
     imu_sensor_interface_.registerHandle(imu_sensor_handle);
     registerInterface(&imu_sensor_interface_);
 
+    cm730_->MakeBulkReadPacket();
 }
 
 RobotisOPHardwareInterface::RobotisOPHardwareInterface(RobotisOPHardwareInterface const&)
@@ -163,9 +131,6 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface(RobotisOPHardwareInterfac
 
 RobotisOPHardwareInterface::~RobotisOPHardwareInterface()
 {
-    delete(linux_cm730_);
-    delete(cm730_);
-    delete(motion_timer_);
 }
 
 RobotisOPHardwareInterface& RobotisOPHardwareInterface::operator=(RobotisOPHardwareInterface const&)
@@ -179,13 +144,6 @@ RobotisOPHardwareInterface::Ptr& RobotisOPHardwareInterface::Instance()
     return singelton;
 }
 
-void RobotisOPHardwareInterface::Initialize()
-{
-}
-
-void RobotisOPHardwareInterface::Process()
-{
-}
 
 double lowPassFilter(double alpha, double x_new, double x_old)
 {
@@ -194,7 +152,39 @@ double lowPassFilter(double alpha, double x_new, double x_old)
 
 void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
 {
-    for (unsigned int i = 0; i < JointData::NUMBER_OF_JOINTS-1; i++)
+    cm730_->BulkRead();
+    /*if ( != CM730::SUCCESS){
+        ROS_ERROR("Error while reading bulk");
+    }*/
+    
+    /*for (int p = 0; p < 20; p++){
+        for (int i = 0; i < 400; i+=2){
+            if(cm730_->m_BulkReadData[p].ReadWord(i)!= 0)
+                ROS_INFO("%d, %d, %d", p, i, cm730_->m_BulkReadData[p].ReadWord(i));
+        }
+    }*/
+   
+    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
+        if (cm730_->m_BulkReadData[id].error > 0){
+            ROS_ERROR("Error on read data for motor %d", id);
+        }
+        int val = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
+        pos_[id-1] = MX28::Value2Angle(val) * (3.14159 / 180.0);    
+    }
+
+/*
+    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
+        int value, error;
+        if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
+        {
+            //int val = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
+            pos_[id-1] = MX28::Value2Angle(value) * 3.14159 / 180.0;    
+        }
+
+    }*/
+
+
+    /*for (unsigned int i = 0; i < JointData::NUMBER_OF_JOINTS-1; i++)
     {
         cmd_[i] = std::numeric_limits<double>::quiet_NaN();
        // pos_[i] = std::numeric_limits<double>::quiet_NaN();
@@ -210,6 +200,10 @@ void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
         pos_[id_index]= new_pos;
         //reading velocity and acceleration with the current firmware is not possible without jamming the cm730, state 05/2015
     }
+
+	int value, error;*/
+   
+
 
     //IMU
     double filter_alpha = 0.5;

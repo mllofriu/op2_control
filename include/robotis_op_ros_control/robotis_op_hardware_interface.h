@@ -21,21 +21,15 @@
 #include <hardware_interface/imu_sensor_interface.h>
 #include <hardware_interface/robot_hw.h>
 
-
-
-
 namespace robotis_op
 {
-class RobotisOPHardwareInterface
-        : public Robot::MotionModule
-        , public hardware_interface::RobotHW
+
+class RobotisOPHardwareInterface :
+    public hardware_interface::RobotHW
 {
 public:
 
     ~RobotisOPHardwareInterface();
-
-    void Initialize();
-    void Process();
 
     // ROS Control
     void read(ros::Time time, ros::Duration period);
@@ -109,8 +103,8 @@ protected:
 
 
     //Robot
-    Robot::LinuxCM730 *linux_cm730_;
-    Robot::CM730 *cm730_;
+    Robot::LinuxCM730 * linux_cm730_;
+    Robot::CM730 * cm730_;
     Robot::LinuxMotionTimer *motion_timer_;
     std::string cm730_device_, action_file_, config_file_;
 
