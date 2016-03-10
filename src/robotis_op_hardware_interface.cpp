@@ -228,17 +228,31 @@ for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
 
 void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 {
-    int param[(JointData::NUMBER_OF_JOINTS-1) * 3];
+    int param[(JointData::NUMBER_OF_JOINTS-1) * 9];
     // int param[1 * 2];
     int n = 0;
     int joint_num = 0;
     for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
     {
         param[n++] = id;
+
+        // Set PID
+        param[n++] = floor(cmd_[id-1].D);
+        param[n++] = floor(cmd_[id-1].I);
+        param[n++] = floor(cmd_[id-1].P);
+        // Reserved position
+        param[n++] = 0;
+
+        // Set position
         int value = MX28::Angle2Value(cmd_[id-1].pos * 180.0 / M_PI);
         ROS_INFO("Sending angle %f to joint %d", cmd_[id-1].pos, id);
         param[n++] = CM730::GetLowByte(value);
         param[n++] = CM730::GetHighByte(value);
+        // vel goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec
+        // so vel in motor is vel in rad/2 / 0.0119381
+        int vel = cmd_[id-1].vel / 0.0119381;
+        param[n++] = CM730::GetLowByte(vel);
+        param[n++] = CM730::GetHighByte(vel);
         joint_num++;
     }
     // param[n++] = 5;
@@ -246,7 +260,8 @@ void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
     // param[n++] = CM730::GetHighByte(2000);
     // joint_num++;
 
-    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 3, JointData::NUMBER_OF_JOINTS-1, param);
+
+    cm730_->SyncWrite(MX28::P_D_GAIN, 9, JointData::NUMBER_OF_JOINTS-1, param);
     // int error;
     // cm730_->WriteWord(5, MX28::P_GOAL_POSITION_L, 2000, &error);
     // ROS_INFO("Received p: %f", cmd_[6].P);
