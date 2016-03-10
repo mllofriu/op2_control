@@ -1,0 +1,95 @@
+#ROBOTIS OP:
+# Position controllers ---------------------------------------
+
+ # HEAD
+
+  j_pan_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_pan
+
+  j_tilt_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_tilt
+
+
+  # ARMS
+
+  j_shoulder_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_shoulder_l
+    has_position_limits: true # Continuous joint
+    min_position: -2.0
+    max_position: 2.0
+    has_velocity_limits: true
+    max_velocity: 1.0
+
+  j_high_arm_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_high_arm_l
+
+  j_low_arm_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_low_arm_l
+
+  j_shoulder_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_shoulder_r
+
+  j_high_arm_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_high_arm_r
+
+  j_low_arm_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_low_arm_r
+
+
+  # LEGS
+
+  j_pelvis_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_pelvis_l
+
+  j_thigh1_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_thigh1_l
+
+  j_thigh2_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_thigh2_l
+
+  j_tibia_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_tibia_l
+
+  j_ankle1_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_ankle1_l
+
+  j_ankle2_l_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_ankle2_l
+
+  j_pelvis_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_pelvis_r
+
+  j_thigh1_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_thigh1_r
+
+  j_thigh2_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_thigh2_r
+
+  j_tibia_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_tibia_r
+
+  j_ankle1_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_ankle1_r
+
+  j_ankle2_r_position_controller:
+    type: robotis_op_ros_control::DarwinJointController
+    joint: j_ankle2_r

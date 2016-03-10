@@ -2,7 +2,7 @@
 #include <LinuxMotionTimer.h>
 #include <sensor_msgs/Imu.h>
 
-namespace robotis_op
+namespace robotis_op_ros_control
 {
 RobotisOPRosControllerNode::RobotisOPRosControllerNode()
 {
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
     double control_rate;
     nh.param("robotis_op_ros_controller/control_rate", control_rate, 10.0);
 
-    robotis_op::RobotisOPRosControllerNode robotis_op_ros_controller_node;
+    robotis_op_ros_control::RobotisOPRosControllerNode robotis_op_ros_controller_node;
 
     ros::AsyncSpinner spinner(4);
     spinner.start();
@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 
     dynamic_reconfigure::Server<robotis_op_ros_control::robotis_op_ros_controlConfig> srv;
     dynamic_reconfigure::Server<robotis_op_ros_control::robotis_op_ros_controlConfig>::CallbackType cb;
-    cb = boost::bind(&robotis_op::RobotisOPRosControllerNode::dynamicReconfigureCb, &robotis_op_ros_controller_node, _1, _2);
+    cb = boost::bind(&robotis_op_ros_control::RobotisOPRosControllerNode::dynamicReconfigureCb, &robotis_op_ros_controller_node, _1, _2);
     srv.setCallback(cb);
 
     while (ros::ok())

@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   controller_manager
   dynamic_reconfigure
   tf
+  message_generation
+  pluginlib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -61,11 +63,10 @@ find_package(darwin_lib REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   PIDPosVelAcc.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -82,10 +83,10 @@ find_package(darwin_lib REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 
 generate_dynamic_reconfigure_options( config/robotis_op_ros_control.cfg)
@@ -102,7 +103,7 @@ generate_dynamic_reconfigure_options( config/robotis_op_ros_control.cfg)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES robotis_op_ros_control
-  CATKIN_DEPENDS roscpp rospy actionlib_msgs actionlib std_msgs hardware_interface controller_manager dynamic_reconfigure  tf
+  CATKIN_DEPENDS roscpp rospy actionlib_msgs actionlib std_msgs hardware_interface controller_manager dynamic_reconfigure  tf message_runtime pluginlib
   DEPENDS darwin_lib_LIBRARY
 )
 
@@ -115,78 +116,35 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(include ${darwin_lib_INCLUDE_DIR})
 
-
-## Specify additional locations of header files
-set(HEADERS
-    include/${PROJECT_NAME}/robotis_op_hardware_interface.h
-    include/${PROJECT_NAME}/robotis_op_ros_controller.h
-
-)
-
-set(SOURCES
-    src/robotis_op_hardware_interface.cpp
-    src/robotis_op_ros_controller.cpp
-)
-
-## Declare a cpp library
-add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+add_library(darwin_joint_controller src/darwin_joint_controller.cpp)
+target_link_libraries(darwin_joint_controller ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+add_dependencies(darwin_joint_controller ${PROJECT_NAME}_msgs_generate_messages_cpp)
 
 ## Declare a cpp executable
-add_executable(robotis_op_ros_controller src/robotis_op_ros_controller.cpp)
+add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+#add_dependencies( ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} )
-target_link_libraries(robotis_op_ros_controller ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+#target_link_libraries(robotis_op_ros_controller ${PROJECT_NAME})
 
-#############
-## Install ##
-#############
 
-# all install targets should use catkin DESTINATION variables
-# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(DIRECTORY launch/
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
+ 
+install(TARGETS darwin_joint_controller ${PROJECT_NAME} 
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
-## Mark executables and/or libraries for installation
-# install(TARGETS thor_mang_ros_control thor_mang_ros_control_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
-
-## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
-
-#############
-## Testing ##
-#############
-
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_thor_mang_ros_control.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+install(FILES plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

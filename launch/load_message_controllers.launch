@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<launch>  
+ <!-- load position controllers -->
+ <node name="message_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+   args="j_shoulder_r_position_controller
+   j_shoulder_l_position_controller
+   j_high_arm_r_position_controller
+   j_high_arm_l_position_controller
+   j_low_arm_r_position_controller
+   j_low_arm_l_position_controller
+   j_pelvis_r_position_controller
+   j_pelvis_l_position_controller
+   j_thigh1_r_position_controller
+   j_thigh1_l_position_controller
+   j_thigh2_r_position_controller
+   j_thigh2_l_position_controller
+   j_tibia_r_position_controller
+   j_tibia_l_position_controller
+   j_ankle1_r_position_controller
+   j_ankle1_l_position_controller
+   j_ankle2_r_position_controller
+   j_ankle2_l_position_controller
+   j_pan_position_controller
+   j_tilt_position_controller"/>
+</launch>

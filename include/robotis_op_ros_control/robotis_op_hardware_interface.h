@@ -21,7 +21,11 @@
 #include <hardware_interface/imu_sensor_interface.h>
 #include <hardware_interface/robot_hw.h>
 
-namespace robotis_op
+#include "robotis_op_ros_control/PIDPosVelAcc.h"
+#include "robotis_op_ros_control/msg_command_inteface.h"
+
+
+namespace robotis_op_ros_control
 {
 
 class RobotisOPHardwareInterface :
@@ -88,12 +92,13 @@ protected:
 
     // ros control interfaces
     hardware_interface::JointStateInterface joint_state_interface_;
-    hardware_interface::PositionJointInterface pos_joint_interface_;
+    // hardware_interface::PositionJointInterface pos_joint_interface_;
+    hardware_interface::JointMsgCmdInterface<robotis_op_ros_control::PIDPosVelAcc> msg_cmd_joint_interface_;
     hardware_interface::ImuSensorInterface imu_sensor_interface_;
 
     // Status arrays containing values for each joint (+ dummy joints to model the gripper)
     // vel_dummy_ and eff_dummy_ are required to meet the interface, but not actually used
-    double cmd_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    robotis_op_ros_control::PIDPosVelAcc cmd_[Robot::JointData::NUMBER_OF_JOINTS];
     double pos_[Robot::JointData::NUMBER_OF_JOINTS+3];
     double vel_[Robot::JointData::NUMBER_OF_JOINTS+3];
     double eff_dummy_[Robot::JointData::NUMBER_OF_JOINTS+3];

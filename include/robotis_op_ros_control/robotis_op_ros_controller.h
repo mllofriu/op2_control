@@ -21,7 +21,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <robotis_op_ros_control/robotis_op_ros_controlConfig.h>
 
-namespace robotis_op
+namespace robotis_op_ros_control
 {
 class RobotisOPRosControllerNode
 {
