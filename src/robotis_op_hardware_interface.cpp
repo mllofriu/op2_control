@@ -223,16 +223,25 @@ for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
 
 void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 {
-    int param[(JointData::NUMBER_OF_JOINTS-1) * 2];
+    //int param[(JointData::NUMBER_OF_JOINTS-1) * 3];
+    int param[1 * 2];
     int n = 0;
     int joint_num = 0;
-    for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
-    {
-        param[n++] = id;
-        param[n++] = cmd_[id-1];
-        joint_num++;
-    }
-    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 2, JointData::NUMBER_OF_JOINTS-1, param);
+    // for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
+    // {
+    //     param[n++] = id;
+    //     param[n++] = CM730::GetLowByte(cmd_[id-1]);
+    //     param[n++] = CM730::GetHighByte(cmd_[id-1]);
+    //     joint_num++;
+    // }
+    param[n++] = 5;
+    param[n++] = CM730::GetLowByte(2000);
+    param[n++] = CM730::GetHighByte(2000);
+    joint_num++;
+
+    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 3, 1, param);
+    // int error;
+    // cm730_->WriteWord(5, MX28::P_GOAL_POSITION_L, 2000, &error);
 }
 
 
