@@ -1,5 +1,6 @@
 #include <robotis_op_ros_control/robotis_op_hardware_interface.h>
 #include <angles/angles.h>
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include <MX28.h>
@@ -106,8 +107,9 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
         int value, error;
         if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
         {
-            cmd_[id-1] = value;    
-	    pos_[id-1] = value;
+            double angle = MX28::Value2Angle(value) * (M_PI / 180.0);   
+            cmd_[id-1] = angle;    
+	        pos_[id-1] = angle;
         }
     }
 
@@ -155,17 +157,17 @@ void RobotisOPHardwareInterface::readMotors(int * ids, int numMotors)
 {
     cm730_->MakeBulkReadMotorData(ids, numMotors);
     cm730_->BulkRead();
-    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
-        if (cm730_->m_BulkReadData[id].error > 0){
-            ROS_ERROR("Error on read data for motor %d", id);
+    for(int id = 0; id < numMotors; id++){
+        if (cm730_->m_BulkReadData[ids[id]].error > 0){
+            ROS_ERROR("Error on read data for motor %d", ids[id]);
         } else {
-		int pos = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_POSITION_L);
-		pos_[id-1] = MX28::Value2Angle(pos) * (3.14159 / 180.0);   
-		int vel = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_SPEED_L);
-		vel_[id-1] = MX28::Value2Angle(vel) * (3.14159 / 180.0); 
-		int load = cm730_->m_BulkReadData[id].ReadWord(MX28::P_PRESENT_LOAD_L);
-		eff_dummy_[id-1] = load;       
-	}
+    		int pos = cm730_->m_BulkReadData[ids[id]].ReadWord(MX28::P_PRESENT_POSITION_L);
+    		pos_[ids[id]-1] = MX28::Value2Angle(pos) * (M_PI / 180.0);   
+    		int vel = cm730_->m_BulkReadData[ids[id]].ReadWord(MX28::P_PRESENT_SPEED_L);
+    		vel_[ids[id]-1] = MX28::Value2Angle(vel) * (M_PI / 180.0); 
+    		int load = cm730_->m_BulkReadData[ids[id]].ReadWord(MX28::P_PRESENT_LOAD_L);
+    		eff_dummy_[ids[id]-1] = load;       
+	    }
     }   
     
 
@@ -223,23 +225,24 @@ for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
 
 void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 {
-    //int param[(JointData::NUMBER_OF_JOINTS-1) * 3];
-    int param[1 * 2];
+    int param[(JointData::NUMBER_OF_JOINTS-1) * 3];
+    // int param[1 * 2];
     int n = 0;
     int joint_num = 0;
-    // for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
-    // {
-    //     param[n++] = id;
-    //     param[n++] = CM730::GetLowByte(cmd_[id-1]);
-    //     param[n++] = CM730::GetHighByte(cmd_[id-1]);
-    //     joint_num++;
-    // }
-    param[n++] = 5;
-    param[n++] = CM730::GetLowByte(2000);
-    param[n++] = CM730::GetHighByte(2000);
-    joint_num++;
+    for(int id=1; id<JointData::NUMBER_OF_JOINTS; id++)
+    {
+        param[n++] = id;
+        int value = MX28::Angle2Value(cmd_[id-1] * 180.0 / M_PI);
+        param[n++] = CM730::GetLowByte(value);
+        param[n++] = CM730::GetHighByte(value);
+        joint_num++;
+    }
+    // param[n++] = 5;
+    // param[n++] = CM730::GetLowByte(2000);
+    // param[n++] = CM730::GetHighByte(2000);
+    // joint_num++;
 
-    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 3, 1, param);
+    cm730_->SyncWrite(MX28::P_GOAL_POSITION_L, 3, JointData::NUMBER_OF_JOINTS-1, param);
     // int error;
     // cm730_->WriteWord(5, MX28::P_GOAL_POSITION_L, 2000, &error);
 }
@@ -365,61 +368,61 @@ void RobotisOPHardwareInterface::setBlockWrite(bool block)
     }
     else
     {
-        block_write_ = false;
-        std::vector<ros::Publisher> joint_publisher;
-        ros::NodeHandle n;
+        // block_write_ = false;
+        // std::vector<ros::Publisher> joint_publisher;
+        // ros::NodeHandle n;
 
-        std_msgs::Float64 angle_msg;
+        // std_msgs::Float64 angle_msg;
 
-        ros::Publisher j15_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle1_l_position_controller/command", 100);
-        ros::Publisher j14_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle1_r_position_controller/command", 100);
-        ros::Publisher j17_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle2_l_position_controller/command", 100);
-        ros::Publisher j16_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle2_r_position_controller/command", 100);
-        ros::Publisher j03_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_high_arm_l_position_controller/command", 100);
-        ros::Publisher j02_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_high_arm_r_position_controller/command", 100);
-        ros::Publisher j05_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_low_arm_l_position_controller/command", 100);
-        ros::Publisher j04_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_low_arm_r_position_controller/command", 100);
-        ros::Publisher j18_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pan_position_controller/command", 100);
-        ros::Publisher j07_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pelvis_l_position_controller/command", 100);
-        ros::Publisher j06_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pelvis_r_position_controller/command", 100);
-        ros::Publisher j01_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_shoulder_l_position_controller/command", 100);
-        ros::Publisher j00_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_shoulder_r_position_controller/command", 100);
-        ros::Publisher j09_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh1_l_position_controller/command", 100);
-        ros::Publisher j08_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh1_r_position_controller/command", 100);
-        ros::Publisher j11_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh2_l_position_controller/command", 100);
-        ros::Publisher j10_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh2_r_position_controller/command", 100);
-        ros::Publisher j13_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tibia_l_position_controller/command", 100);
-        ros::Publisher j12_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tibia_r_position_controller/command", 100);
-        ros::Publisher j19_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tilt_position_controller/command", 100);
+        // ros::Publisher j15_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle1_l_position_controller/command", 100);
+        // ros::Publisher j14_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle1_r_position_controller/command", 100);
+        // ros::Publisher j17_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle2_l_position_controller/command", 100);
+        // ros::Publisher j16_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_ankle2_r_position_controller/command", 100);
+        // ros::Publisher j03_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_high_arm_l_position_controller/command", 100);
+        // ros::Publisher j02_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_high_arm_r_position_controller/command", 100);
+        // ros::Publisher j05_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_low_arm_l_position_controller/command", 100);
+        // ros::Publisher j04_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_low_arm_r_position_controller/command", 100);
+        // ros::Publisher j18_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pan_position_controller/command", 100);
+        // ros::Publisher j07_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pelvis_l_position_controller/command", 100);
+        // ros::Publisher j06_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_pelvis_r_position_controller/command", 100);
+        // ros::Publisher j01_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_shoulder_l_position_controller/command", 100);
+        // ros::Publisher j00_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_shoulder_r_position_controller/command", 100);
+        // ros::Publisher j09_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh1_l_position_controller/command", 100);
+        // ros::Publisher j08_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh1_r_position_controller/command", 100);
+        // ros::Publisher j11_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh2_l_position_controller/command", 100);
+        // ros::Publisher j10_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_thigh2_r_position_controller/command", 100);
+        // ros::Publisher j13_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tibia_l_position_controller/command", 100);
+        // ros::Publisher j12_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tibia_r_position_controller/command", 100);
+        // ros::Publisher j19_pub = n.advertise<std_msgs::Float64>("/robotis_op/j_tilt_position_controller/command", 100);
 
-        joint_publisher.push_back(j00_pub);
-        joint_publisher.push_back(j01_pub);
-        joint_publisher.push_back(j02_pub);
-        joint_publisher.push_back(j03_pub);
-        joint_publisher.push_back(j04_pub);
-        joint_publisher.push_back(j05_pub);
-        joint_publisher.push_back(j06_pub);
-        joint_publisher.push_back(j07_pub);
-        joint_publisher.push_back(j08_pub);
-        joint_publisher.push_back(j09_pub);
-        joint_publisher.push_back(j10_pub);
-        joint_publisher.push_back(j11_pub);
-        joint_publisher.push_back(j12_pub);
-        joint_publisher.push_back(j13_pub);
-        joint_publisher.push_back(j14_pub);
-        joint_publisher.push_back(j15_pub);
-        joint_publisher.push_back(j16_pub);
-        joint_publisher.push_back(j17_pub);
-        joint_publisher.push_back(j18_pub);
-        joint_publisher.push_back(j19_pub);
+        // joint_publisher.push_back(j00_pub);
+        // joint_publisher.push_back(j01_pub);
+        // joint_publisher.push_back(j02_pub);
+        // joint_publisher.push_back(j03_pub);
+        // joint_publisher.push_back(j04_pub);
+        // joint_publisher.push_back(j05_pub);
+        // joint_publisher.push_back(j06_pub);
+        // joint_publisher.push_back(j07_pub);
+        // joint_publisher.push_back(j08_pub);
+        // joint_publisher.push_back(j09_pub);
+        // joint_publisher.push_back(j10_pub);
+        // joint_publisher.push_back(j11_pub);
+        // joint_publisher.push_back(j12_pub);
+        // joint_publisher.push_back(j13_pub);
+        // joint_publisher.push_back(j14_pub);
+        // joint_publisher.push_back(j15_pub);
+        // joint_publisher.push_back(j16_pub);
+        // joint_publisher.push_back(j17_pub);
+        // joint_publisher.push_back(j18_pub);
+        // joint_publisher.push_back(j19_pub);
 
-        for(unsigned int i = 0; i<joint_publisher.size(); ++i)
-        {
+        // for(unsigned int i = 0; i<joint_publisher.size(); ++i)
+        // {
 
-            angle_msg.data = pos_[i];
-            joint_publisher[i].publish(angle_msg);
+        //     angle_msg.data = pos_[i];
+        //     joint_publisher[i].publish(angle_msg);
 
-        }
+        // }
         //ROS_INFO("Unblocked Write");
     }
 }
