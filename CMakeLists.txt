@@ -122,15 +122,16 @@ add_dependencies(darwin_joint_controller ${PROJECT_NAME}_msgs_generate_messages_
 
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)
-
-## Add cmake target dependencies of the executable/library
-## as an example, message headers may need to be generated before nodes
-#add_dependencies( ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_msgs_generate_messages_cpp)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+
+add_executable(move tests/move.cpp)
+#add_dependencies(move ${PROJECT_NAME}_msgs_generate_messages_cpp)
+target_link_libraries(move ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+
 #target_link_libraries(robotis_op_ros_controller ${PROJECT_NAME})
 
 
@@ -140,7 +141,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
  
-install(TARGETS darwin_joint_controller ${PROJECT_NAME} 
+install(TARGETS darwin_joint_controller ${PROJECT_NAME} move
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

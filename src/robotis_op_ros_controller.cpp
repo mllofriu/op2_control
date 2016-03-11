@@ -101,9 +101,10 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "robotis_op_ros_controller");
 
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
     double control_rate;
-    nh.param("robotis_op_ros_controller/control_rate", control_rate, 10.0);
+    nh.param("control_rate", control_rate, 100.0);
+    ROS_INFO("Controlling at %f Hz", control_rate);
 
     robotis_op_ros_control::RobotisOPRosControllerNode robotis_op_ros_controller_node;
 

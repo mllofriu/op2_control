@@ -12,7 +12,7 @@
       args="joint_state_controller
             imu_sensor_controller"/>
 
-    <node name="robotis_op_ros_control" pkg="robotis_op_ros_control" type="robotis_op_ros_control" respawn="true" output="screen" >
+    <node name="robotis_op_ros_control" pkg="robotis_op_ros_control" type="robotis_op_ros_control" required="true" output="screen" >
       <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_controller_config.yaml" command="load"/>
       <param name="robotis_op_ini_file" value="$(find robotis_op_ros_control)/config/robotis_op_config.ini" />
     </node>   

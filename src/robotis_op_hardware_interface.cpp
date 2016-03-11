@@ -85,6 +85,7 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
     if(!cm730_->Connect())
     {
         ROS_ERROR("Failed to connect CM-730\n");
+        ros::shutdown();
     }
 
 
@@ -245,7 +246,7 @@ void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 
         // Set position
         int value = MX28::Angle2Value(cmd_[id-1].pos * 180.0 / M_PI);
-        ROS_INFO("Sending angle %f to joint %d", cmd_[id-1].pos, id);
+        ROS_DEBUG("Sending angle %f to joint %d", cmd_[id-1].pos, id);
         param[n++] = CM730::GetLowByte(value);
         param[n++] = CM730::GetHighByte(value);
         // vel goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec
