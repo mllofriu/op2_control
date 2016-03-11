@@ -93,7 +93,7 @@ void RobotisOPRosControllerNode::update(ros::Time time, ros::Duration period)
     controller_manager_->update(time, period);
     RobotisOPHardwareInterface::Instance()->write(time, period);
 
-    RobotisOPHardwareInterface::Instance()->checkFall();
+    // RobotisOPHardwareInterface::Instance()->checkFall();
 }
 }
 

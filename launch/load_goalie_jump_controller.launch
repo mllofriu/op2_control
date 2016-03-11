@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+
+<launch>  
+ <rosparam file="$(find robotis_op_ros_control)/config/goalie_jump.yaml" command="load" />
+ <node name="message_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+   args="goalie_jump_controller"/>
+</launch>

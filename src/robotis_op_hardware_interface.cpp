@@ -5,8 +5,6 @@
 #include <MX28.h>
 #include <JointData.h>
 
-#include <std_msgs/Float64.h>
-
 #include "robotis_op_ros_control/robotis_op_hardware_interface.h"
 
 namespace robotis_op_ros_control
@@ -95,27 +93,31 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
     {
         // connect and register the joint state interface
         hardware_interface::JointStateHandle joint_state_handle(jointUIDs[id_index], &pos_[id_index], &vel_[id_index], &eff_dummy_[id_index]);
-        joint_state_interface_.registerHandle(joint_state_handle);
+        // joint_state_interface_.registerHandle(joint_state_handle);
+        hardware_interface::PosVelAccPIDJointHandle joint_handle(joint_state_handle, &cmd_pos_[id_index], &cmd_vel_[id_index], &cmd_eff_dummy_[id_index],
+         &cmd_p_[id_index], &cmd_i_[id_index], &cmd_d_[id_index]);
+        joint_posvelacc_pid_inteface_.registerHandle(joint_handle);
         // connect and register the joint position interface
         // hardware_interface::JointHandle joint_handle(joint_state_handle, &cmd_[id_index]);
         // pos_joint_interface_.registerHandle(joint_handle);
-        hardware_interface::JointMsgCmdHandle<robotis_op_ros_control::PIDPosVelAcc> joint_handle(jointUIDs[id_index], &cmd_[id_index]);
-        msg_cmd_joint_interface_.registerHandle(joint_handle);
+        // hardware_interface::JointMsgCmdHandle<robotis_op_ros_control::PIDPosVelAcc> joint_msg_handle(jointUIDs[id_index], &cmd_[id_index]);
+        // msg_cmd_joint_interface_.registerHandle(joint_msg_handle);
     }
 
-    registerInterface(&joint_state_interface_);
-    registerInterface(&msg_cmd_joint_interface_);
+    // registerInterface(&joint_state_interface_);
+    registerInterface(&joint_posvelacc_pid_inteface_);
+    // registerInterface(&msg_cmd_joint_interface_);
 
     // Set goals to current positions
-    for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
-        int value, error;
-        if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
-        {
-            double angle = MX28::Value2Angle(value) * (M_PI / 180.0);   
-            cmd_[id-1].pos = angle;    
-	        pos_[id-1] = angle;
-        }
-    }
+    // for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
+    //     int value, error;
+    //     if(cm730_->ReadWord(id, MX28::P_PRESENT_POSITION_L, &value, &error) == CM730::SUCCESS)
+    //     {
+    //         double angle = MX28::Value2Angle(value) * (M_PI / 180.0);   
+    //         cmd_[id-1].pos = angle;    
+	   //      pos_[id-1] = angle;
+    //     }
+    // }
 
 
 
@@ -238,20 +240,20 @@ void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
         param[n++] = id;
 
         // Set PID
-        param[n++] = floor(cmd_[id-1].D);
-        param[n++] = floor(cmd_[id-1].I);
-        param[n++] = floor(cmd_[id-1].P);
+        param[n++] = floor(cmd_d_[id-1]);
+        param[n++] = floor(cmd_i_[id-1]);
+        param[n++] = floor(cmd_p_[id-1]);
         // Reserved position
         param[n++] = 0;
 
         // Set position
-        int value = MX28::Angle2Value(cmd_[id-1].pos * 180.0 / M_PI);
-        ROS_DEBUG("Sending angle %f to joint %d", cmd_[id-1].pos, id);
+        int value = MX28::Angle2Value(cmd_pos_[id-1] * 180.0 / M_PI);
+        ROS_INFO("Sending angle %f to joint %d with P %d", cmd_pos_[id-1], id, floor(cmd_p_[id-1]));
         param[n++] = CM730::GetLowByte(value);
         param[n++] = CM730::GetHighByte(value);
         // vel goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec
         // so vel in motor is vel in rad/2 / 0.0119381
-        int vel = cmd_[id-1].vel / 0.0119381;
+        int vel = cmd_vel_[id-1] / 0.0119381;
         param[n++] = CM730::GetLowByte(vel);
         param[n++] = CM730::GetHighByte(vel);
         joint_num++;

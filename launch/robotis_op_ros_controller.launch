@@ -6,16 +6,16 @@
     <!-- Load joint controller configurations from YAML file to parameter server -->
     <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_states.yaml" command="load" />
     <!-- <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_position_controllers.yaml" command="load" /> -->
-    <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_message_controllers.yaml" command="load" />
+    <!-- <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_message_controllers.yaml" command="load" /> -->
 
-    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+     <!-- <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
       args="joint_state_controller
-            imu_sensor_controller"/>
+            imu_sensor_controller"/> -->
 
     <node name="robotis_op_ros_control" pkg="robotis_op_ros_control" type="robotis_op_ros_control" required="true" output="screen" >
       <rosparam file="$(find robotis_op_ros_control)/config/robotis_op_controller_config.yaml" command="load"/>
       <param name="robotis_op_ini_file" value="$(find robotis_op_ros_control)/config/robotis_op_config.ini" />
     </node>   
 
-    <include file="$(find robotis_op_ros_control)/launch/load_message_controllers.launch" />
+    <include file="$(find robotis_op_ros_control)/launch/load_goalie_jump_controller.launch" />
 </launch>

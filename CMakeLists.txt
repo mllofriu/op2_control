@@ -116,9 +116,10 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(include ${darwin_lib_INCLUDE_DIR})
 
-add_library(darwin_joint_controller src/darwin_joint_controller.cpp)
-target_link_libraries(darwin_joint_controller ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
-add_dependencies(darwin_joint_controller ${PROJECT_NAME}_msgs_generate_messages_cpp)
+add_library(robotis_op_controllers src/darwin_joint_controller.cpp src/goalie_jump_controller.cpp)
+target_link_libraries(robotis_op_controllers ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+add_dependencies(robotis_op_controllers ${PROJECT_NAME}_msgs_generate_messages_cpp)
+
 
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)
@@ -141,7 +142,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
  
-install(TARGETS darwin_joint_controller ${PROJECT_NAME} move
+install(TARGETS robotis_op_controllers ${PROJECT_NAME} move
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
