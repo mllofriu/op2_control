@@ -191,7 +191,8 @@ void RobotisOPHardwareInterface::read(ros::Time time, ros::Duration period)
     readMotors(lArm, 3);
     int head[2] = {19,20};
     readMotors(head, 2);
-
+    // int body[20] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+    // readMotors(body, 20);
     /*
 for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
         int value, error;
@@ -203,30 +204,30 @@ for(int id = 1; id < JointData::NUMBER_OF_JOINTS; id++){
 */
     // TODO: put this back in CM730.cpp
     //IMU
-    double filter_alpha = 0.5;
+    // double filter_alpha = 0.5;
 
-    //in rad/s
-    imu_angular_velocity_[0] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_X_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[0]);
-    imu_angular_velocity_[1] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_Y_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[1]);
-    imu_angular_velocity_[2] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_Z_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[2]);
+    // //in rad/s
+    // imu_angular_velocity_[0] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_X_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[0]);
+    // imu_angular_velocity_[1] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_Y_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[1]);
+    // imu_angular_velocity_[2] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_GYRO_Z_L)-512)*1600.0*M_PI/(512.0*180.0),imu_angular_velocity_[2]);
 
-    //in m/s^2
-    imu_linear_acceleration_[0] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_X_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[0]);
-    imu_linear_acceleration_[1] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_Y_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[1]);
-    imu_linear_acceleration_[2] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_Z_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[2]);
+    // //in m/s^2
+    // imu_linear_acceleration_[0] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_X_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[0]);
+    // imu_linear_acceleration_[1] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_Y_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[1]);
+    // imu_linear_acceleration_[2] = lowPassFilter(filter_alpha,(cm730_->m_BulkReadData[CM730::ID_CM].ReadWord(CM730::P_ACCEL_Z_L)-512)*G_ACC*4.0/512.0,imu_linear_acceleration_[2]);
 
-    //Estimation of roll and pitch based on accelometer data, see http://theccontinuum.com/2012/09/24/arduino-imu-pitch-roll-from-accelerometer/
-    double sign = copysignf(1.0,  imu_linear_acceleration_[2]/G_ACC);
-    double roll = atan2( imu_linear_acceleration_[1]/G_ACC, sign * sqrt( imu_linear_acceleration_[0]/G_ACC* imu_linear_acceleration_[0]/G_ACC +  imu_linear_acceleration_[2]/G_ACC* imu_linear_acceleration_[2]/G_ACC));
-    double pitch = -atan2( imu_linear_acceleration_[0]/G_ACC, sqrt( imu_linear_acceleration_[1]/G_ACC* imu_linear_acceleration_[1]/G_ACC +  imu_linear_acceleration_[2]/G_ACC* imu_linear_acceleration_[2]/G_ACC));
-    double yaw = 0.0;
+    // //Estimation of roll and pitch based on accelometer data, see http://theccontinuum.com/2012/09/24/arduino-imu-pitch-roll-from-accelerometer/
+    // double sign = copysignf(1.0,  imu_linear_acceleration_[2]/G_ACC);
+    // double roll = atan2( imu_linear_acceleration_[1]/G_ACC, sign * sqrt( imu_linear_acceleration_[0]/G_ACC* imu_linear_acceleration_[0]/G_ACC +  imu_linear_acceleration_[2]/G_ACC* imu_linear_acceleration_[2]/G_ACC));
+    // double pitch = -atan2( imu_linear_acceleration_[0]/G_ACC, sqrt( imu_linear_acceleration_[1]/G_ACC* imu_linear_acceleration_[1]/G_ACC +  imu_linear_acceleration_[2]/G_ACC* imu_linear_acceleration_[2]/G_ACC));
+    // double yaw = 0.0;
 
-    tf2::Quaternion imu_orient;
-    imu_orient.setRPY(roll, pitch, yaw);
+    // tf2::Quaternion imu_orient;
+    // imu_orient.setRPY(roll, pitch, yaw);
 
-    imu_orientation_[0] = imu_orient.getX();
-    imu_orientation_[1] = imu_orient.getY();
-    imu_orientation_[2] = imu_orient.getZ();
+    // imu_orientation_[0] = imu_orient.getX();
+    // imu_orientation_[1] = imu_orient.getY();
+    // imu_orientation_[2] = imu_orient.getZ();
 }
 
 void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
@@ -248,7 +249,7 @@ void RobotisOPHardwareInterface::write(ros::Time time, ros::Duration period)
 
         // Set position
         int value = MX28::Angle2Value(cmd_pos_[id-1] * 180.0 / M_PI);
-        ROS_INFO("Sending angle %f to joint %d with P %d", cmd_pos_[id-1], id, floor(cmd_p_[id-1]));
+        // ROS_INFO("Sending angle %f to joint %d with P %d", cmd_pos_[id-1], id, floor(cmd_p_[id-1]));
         param[n++] = CM730::GetLowByte(value);
         param[n++] = CM730::GetHighByte(value);
         // vel goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec

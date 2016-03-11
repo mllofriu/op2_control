@@ -102,25 +102,39 @@ public:
       it->second.setCommandPosition(it->second.getPosition());
       it->second.setCommandP(3.0);
     }
-      
+
+    state_ = extending;
+    joints_[tibia].setCommandPosition(0.0);
+    joints_[tibia].setCommandVelocity(2.0);
+    joints_[tibia].setCommandP(32.0);
   }
 
   // "j_shoulder_r","j_shoulder_l","j_high_arm_r","j_high_arm_l","j_low_arm_r","j_low_arm_l","j_pelvis_r",
   // "j_pelvis_l","j_thigh1_r","j_thigh1_l","j_thigh2_r","j_thigh2_l","j_tibia_r","j_tibia_l","j_ankle1_r",
   // "j_ankle1_l","j_ankle2_r","j_ankle2_l","j_pan","j_tilt","j_wrist_r","j_wrist_l","j_gripper_r","j_gripper_l"]
+  std::string tibia = "j_tibia_l";
 
   void update(const ros::Time& /*time*/, const ros::Duration& /*period*/)
   {
-    if (joints_.find("j_tibia_l") != joints_.end()){
-      ROS_INFO("Sending commands to tibia");
-      joints_["j_tibia_l"].setCommandPosition(-2.0);
-      joints_["j_tibia_l"].setCommandVelocity(5.0);
-      joints_["j_tibia_l"].setCommandP(32.0);
-      // joints_["j_tibia_l"].setCommandI(32.0);
-      // joints_["j_tibia_l"].setCommandD(32.0);
-    } else {
-      ROS_ERROR("tibia not found");
+    switch (state_){
+    case extending:
+      if (joints_[tibia].getPosition() > -0.1){
+        joints_[tibia].setCommandPosition(-3.0);
+        joints_[tibia].setCommandVelocity(2.0);
+        joints_[tibia].setCommandP(32.0);
+        state_ = crouching;
+      }
+      break;
+    case crouching:
+      if (joints_[tibia].getPosition() <= -1.5){
+        joints_[tibia].setCommandPosition(-1.5);
+        joints_[tibia].setCommandVelocity(2.0);
+        joints_[tibia].setCommandP(32.0);
+        state_ = holding;
+      }
+      break;
     }
+    
     
   }
 
@@ -130,6 +144,9 @@ public:
   unsigned int n_joints_;
 
   enum State { extending, crouching, holding };
+  State state_;
+
+
 };
 
 }
