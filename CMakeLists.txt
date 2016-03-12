@@ -6,8 +6,8 @@ project(op2_control)
 #set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
-LIST(APPEND CMAKE_MODULE_PATH "../robotis_op_framework/")
-MESSAGE(STATUS "Module path")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+MESSAGE(STATUS "Devel prefix" ${CMAKE_CURRENT_SOURCE_DIR})
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -24,6 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   message_generation
   pluginlib
+  position_controllers
+  angles
 )
 
 ## System dependencies are found with CMake's conventions
@@ -32,7 +34,7 @@ find_package(Boost COMPONENTS thread REQUIRED)
 # Darwin-OP interface library
 
 
-
+SET(darwin_lib_DIR "cmake")
 SET(DARWIN_LIB_PATH /robotis/)
 find_package(darwin_lib REQUIRED)
 MESSAGE(STATUS "${darwin_lib_LIBRARY}")

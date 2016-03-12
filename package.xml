@@ -42,8 +42,8 @@
   <build_depend>tf</build_depend>
   <build_depend>message_generation</build_depend>
   <build_depend>forward_command_controller</build_depend> 
-  
- 
+  <build_depend>position_controllers</build_depend> 
+  <build_depend>angles</build_depend> 
 
   <run_depend>message_runtime</run_depend>
   <run_depend>roscpp</run_depend>
@@ -58,8 +58,10 @@
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>forward_command_controller</run_depend> 
+  <run_depend>position_controllers</run_depend> 
+  <run_depend>angles</run_depend> 
 
-  <!-- The export tag contains other, unspecified, tags -->
+<!-- The export tag contains other, unspecified, tags -->
   <export>
       <controller_interface plugin="${prefix}/plugins.xml"/>
   </export>

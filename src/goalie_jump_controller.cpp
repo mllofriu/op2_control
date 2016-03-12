@@ -134,6 +134,8 @@ public:
         state_ = holding;
       }
       break;
+    case holding:
+      break;
     }
     
     
