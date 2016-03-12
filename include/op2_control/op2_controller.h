@@ -10,7 +10,7 @@
 
 // ROS Control
 #include <controller_manager/controller_manager.h>
-#include <robotis_op_ros_control/robotis_op_hardware_interface.h>
+#include <op2_control/robotis_op_hardware_interface.h>
 
 // IMU
 #include <tf/transform_broadcaster.h>
@@ -18,8 +18,8 @@
 #include <geometry_msgs/Vector3Stamped.h>
 
 // Dynamic reconfigure
-#include <dynamic_reconfigure/server.h>
-#include <robotis_op_ros_control/robotis_op_ros_controlConfig.h>
+//#include <dynamic_reconfigure/server.h>
+//#include <op2_control/robotis_op_ros_controlConfig.h>
 
 namespace robotis_op_ros_control
 {

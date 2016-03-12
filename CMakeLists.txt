@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(robotis_op_ros_control)
+project(op2_control)
 
 # detect architecture
 #set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_BUILD_TYPE Release)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
+
+LIST(APPEND CMAKE_MODULE_PATH "../robotis_op_framework/")
+MESSAGE(STATUS "Module path")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -27,6 +30,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Boost COMPONENTS thread REQUIRED)
 
 # Darwin-OP interface library
+
+
 
 SET(DARWIN_LIB_PATH /robotis/)
 find_package(darwin_lib REQUIRED)
@@ -89,7 +94,7 @@ generate_messages(
 )
 
 
-generate_dynamic_reconfigure_options( config/robotis_op_ros_control.cfg)
+#generate_dynamic_reconfigure_options( config/op2_control.cfg)
 
 ###################################
 ## catkin specific configuration ##
@@ -102,7 +107,7 @@ generate_dynamic_reconfigure_options( config/robotis_op_ros_control.cfg)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES robotis_op_ros_control
+  LIBRARIES op2_control
   CATKIN_DEPENDS roscpp rospy actionlib_msgs actionlib std_msgs hardware_interface controller_manager dynamic_reconfigure  tf message_runtime pluginlib
   DEPENDS darwin_lib_LIBRARY
 )
@@ -116,22 +121,24 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(include ${darwin_lib_INCLUDE_DIR})
 
-add_library(robotis_op_controllers src/darwin_joint_controller.cpp src/goalie_jump_controller.cpp)
-target_link_libraries(robotis_op_controllers ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
-add_dependencies(robotis_op_controllers ${PROJECT_NAME}_msgs_generate_messages_cpp)
-add_dependencies(robotis_op_controllers ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_library(op2_controllers src/darwin_joint_controller.cpp src/goalie_jump_controller.cpp)
+target_link_libraries(op2_controllers ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
+add_dependencies(op2_controllers ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ## Declare a cpp executable
-add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)
+#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${darwin_lib_LIBRARY})
+#add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+add_executable(op2_robot_hw src/op2_robot_hw.cpp)
+target_link_libraries(op2_robot_hw ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
+add_dependencies(op2_robot_hw ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 
-add_executable(op_pilot src/op_pilot.cpp)
+#add_executable(op_pilot src/op_pilot.cpp)
 #add_dependencies(op_pilot ${PROJECT_NAME}_msgs_generate_messages_cpp)
-target_link_libraries(op_pilot ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
-add_dependencies(op_pilot ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#target_link_libraries(op_pilot ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
+#add_dependencies(op_pilot ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 add_executable(move tests/move.cpp)
 #add_dependencies(move ${PROJECT_NAME}_msgs_generate_messages_cpp)
@@ -140,7 +147,7 @@ add_dependencies(move ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 
-#target_link_libraries(robotis_op_ros_controller ${PROJECT_NAME})
+#target_link_libraries(op2_controllers ${PROJECT_NAME})
 
 
 install(DIRECTORY include/${PROJECT_NAME}/
@@ -149,7 +156,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
  
-install(TARGETS robotis_op_controllers ${PROJECT_NAME} op_pilot move
+install(TARGETS op2_controllers move
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

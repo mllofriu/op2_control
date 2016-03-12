@@ -1,7 +1,7 @@
-
-
 #ifndef FORWARD_MSG_CMD_CONTROLLER_FORWARD_COMMAND_CONTROLLER_H
 #define FORWARD_MSG_CMD_CONTROLLER_FORWARD_COMMAND_CONTROLLER_H
+
+#include <boost/shared_ptr.hpp>
 
 #include <ros/node_handle.h>
 #include <hardware_interface/joint_command_interface.h>
@@ -9,9 +9,9 @@
 #include <std_msgs/Float64.h>
 #include <realtime_tools/realtime_buffer.h>
 
-#include "robotis_op_ros_control/msg_command_inteface.h"
+#include "op2_control/msg_command_inteface.h"
 
-#include <boost/shared_ptr.hpp>
+
 
 namespace forward_command_controller
 {

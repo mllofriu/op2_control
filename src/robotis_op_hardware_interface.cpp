@@ -5,9 +5,9 @@
 #include <MX28.h>
 #include <JointData.h>
 
-#include "robotis_op_ros_control/robotis_op_hardware_interface.h"
+#include "op2_control/robotis_op_hardware_interface.h"
 
-namespace robotis_op_ros_control
+namespace op2_control
 {
 using namespace Robot;
 
@@ -100,7 +100,7 @@ RobotisOPHardwareInterface::RobotisOPHardwareInterface() :
         // connect and register the joint position interface
         // hardware_interface::JointHandle joint_handle(joint_state_handle, &cmd_[id_index]);
         // pos_joint_interface_.registerHandle(joint_handle);
-        // hardware_interface::JointMsgCmdHandle<robotis_op_ros_control::PIDPosVelAcc> joint_msg_handle(jointUIDs[id_index], &cmd_[id_index]);
+        // hardware_interface::JointMsgCmdHandle<op2_control::PIDPosVelAcc> joint_msg_handle(jointUIDs[id_index], &cmd_[id_index]);
         // msg_cmd_joint_interface_.registerHandle(joint_msg_handle);
     }
 

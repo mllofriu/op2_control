@@ -6,7 +6,7 @@
 #include <message_filters/cache.h>
 #include <sensor_msgs/JointState.h>
 
-#include "robotis_op_ros_control/PIDPosVelAcc.h"
+#include "op2_control/PIDPosVelAcc.h"
 
 std::string joints[20] = {
    "j_shoulder_r_position_controller", // 1
@@ -33,7 +33,7 @@ std::string joints[20] = {
 
 int stateMap[20] = {15, 14, 8, 7, 10, 9, 13, 12, 17, 16, 19, 18,21, 20, 2, 1, 4, 3, 11, 22};
 
-using namespace robotis_op_ros_control;
+using namespace op2_control;
 using namespace message_filters;
 
 /**

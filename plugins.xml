@@ -1,10 +1,10 @@
-<library path="lib/librobotis_op_controllers">
-  <class type="robotis_op_ros_control::DarwinJointController" base_class_type="controller_interface::ControllerBase">
+<library path="lib/libop2_controllers">
+  <class type="op2_control::DarwinJointController" base_class_type="controller_interface::ControllerBase">
     <description>
       The DarwinJointController receives command messages with PID constants and pose, velocity and acceleration. It expects a JointMsgCmdInterface type of hardware interface.
     </description>
   </class>
-  <class type="robotis_op_ros_control::GoalieJumpController" base_class_type="controller_interface::ControllerBase">
+  <class type="op2_control::GoalieJumpController" base_class_type="controller_interface::ControllerBase">
     <description>
       The GoalieJumpController performs a coordinated jump to catch the ball.
     </description>

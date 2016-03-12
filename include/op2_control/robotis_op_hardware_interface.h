@@ -21,9 +21,9 @@
 #include <hardware_interface/imu_sensor_interface.h>
 #include <hardware_interface/robot_hw.h>
 
-#include "robotis_op_ros_control/PIDPosVelAcc.h"
-#include "robotis_op_ros_control/posvelacc_pid_command_interface.h"
-#include "robotis_op_ros_control/msg_command_inteface.h"
+#include "op2_control/PIDPosVelAcc.h"
+#include "op2_control/posvelacc_pid_command_interface.h"
+#include "op2_control/msg_command_inteface.h"
 
 
 namespace robotis_op_ros_control

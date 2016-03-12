@@ -1,13 +1,13 @@
 #include <position_controllers/joint_position_controller.h>
 #include <pluginlib/class_list_macros.h>
 
-// #include "robotis_op_ros_control/forward_msg_cmd_controller.h"
-#include "robotis_op_ros_control/PIDPosVelAcc.h"
+// #include "op2_control/forward_msg_cmd_controller.h"
+#include "op2_control/PIDPosVelAcc.h"
 
-// namespace robotis_op_ros_control
+// namespace op2_control
 // {
 
-// typedef forward_command_controller::ForwardMsgCmdController<hardware_interface::JointMsgCmdHandle<robotis_op_ros_control::PIDPosVelAcc> >
+// typedef forward_command_controller::ForwardMsgCmdController<hardware_interface::JointMsgCmdHandle<op2_control::PIDPosVelAcc> >
 //         DarwinJointController;
 
 // } // namespace
@@ -17,11 +17,11 @@
 #include <controller_interface/controller.h>
 #include <realtime_tools/realtime_buffer.h>
 
-#include "robotis_op_ros_control/msg_command_inteface.h"
+#include "op2_control/msg_command_inteface.h"
 
 #include <boost/shared_ptr.hpp>
 
-namespace robotis_op_ros_control
+namespace op2_control
 {
 
 /**
@@ -76,4 +76,4 @@ private:
 } // namespace
 
 
-PLUGINLIB_EXPORT_CLASS(robotis_op_ros_control::DarwinJointController,controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(op2_control::DarwinJointController,controller_interface::ControllerBase)

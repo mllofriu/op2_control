@@ -1,8 +1,8 @@
-#include <robotis_op_ros_control/robotis_op_ros_controller.h>
+#include <op2_control/op2_controller.h>
 #include <LinuxMotionTimer.h>
 #include <sensor_msgs/Imu.h>
 
-namespace robotis_op_ros_control
+namespace op2_control
 {
 RobotisOPRosControllerNode::RobotisOPRosControllerNode()
 {
@@ -61,7 +61,7 @@ void RobotisOPRosControllerNode::imuCb(const sensor_msgs::Imu& msg)
     tf_broadcaster_.sendTransform(transform);
 }
 
-void RobotisOPRosControllerNode::dynamicReconfigureCb(robotis_op_ros_control::robotis_op_ros_controlConfig &config, uint32_t level)
+void RobotisOPRosControllerNode::dynamicReconfigureCb(op2_control::op2_controlConfig &config, uint32_t level)
 {
     RobotisOPHardwareInterface::Instance()->setPIDGains(1,config.j_shoulder_r_position_controller_p_gain, config.j_shoulder_r_position_controller_i_gain, config.j_shoulder_r_position_controller_d_gain);
     RobotisOPHardwareInterface::Instance()->setPIDGains(2,config.j_shoulder_l_position_controller_p_gain, config.j_shoulder_l_position_controller_i_gain, config.j_shoulder_l_position_controller_d_gain);
@@ -99,14 +99,14 @@ void RobotisOPRosControllerNode::update(ros::Time time, ros::Duration period)
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "robotis_op_ros_controller");
+    ros::init(argc, argv, "op2_controller");
 
     ros::NodeHandle nh("~");
     double control_rate;
     nh.param("control_rate", control_rate, 100.0);
     ROS_INFO("Controlling at %f Hz", control_rate);
 
-    robotis_op_ros_control::RobotisOPRosControllerNode robotis_op_ros_controller_node;
+    op2_control::RobotisOPRosControllerNode op2_controller_node;
 
     ros::AsyncSpinner spinner(4);
     spinner.start();
@@ -115,9 +115,9 @@ int main(int argc, char** argv)
     ros::Rate rate(control_rate);
 
 
-    dynamic_reconfigure::Server<robotis_op_ros_control::robotis_op_ros_controlConfig> srv;
-    dynamic_reconfigure::Server<robotis_op_ros_control::robotis_op_ros_controlConfig>::CallbackType cb;
-    cb = boost::bind(&robotis_op_ros_control::RobotisOPRosControllerNode::dynamicReconfigureCb, &robotis_op_ros_controller_node, _1, _2);
+    dynamic_reconfigure::Server<op2_control::op2_controlConfig> srv;
+    dynamic_reconfigure::Server<op2_control::op2_controlConfig>::CallbackType cb;
+    cb = boost::bind(&op2_control::RobotisOPRosControllerNode::dynamicReconfigureCb, &op2_controller_node, _1, _2);
     srv.setCallback(cb);
 
     while (ros::ok())
@@ -125,7 +125,7 @@ int main(int argc, char** argv)
         rate.sleep();
         ros::Time current_time = ros::Time::now();
         ros::Duration elapsed_time = current_time - last_time;
-        robotis_op_ros_controller_node.update(current_time, elapsed_time);
+        op2_controller_node.update(current_time, elapsed_time);
         last_time = current_time;
     }
 
