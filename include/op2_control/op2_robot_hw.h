@@ -61,15 +61,28 @@ private:
     // Status arrays containing values for each joint (+ dummy joints to model the gripper)
     // vel_dummy_ and eff_dummy_ are required to meet the interface, but not actually used
     // robotis_op_ros_control::PIDPosVelAcc cmd_[Robot::JointData::NUMBER_OF_JOINTS];
-    double pos_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double vel_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double eff_dummy_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_pos_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_vel_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_eff_dummy_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_p_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_i_[Robot::JointData::NUMBER_OF_JOINTS+3];
-    double cmd_d_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    struct state{
+    	double pos, vel, eff;
+    	state() : pos(0), vel(0), eff(0) {};
+    };
+    state states_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    struct cmd{
+    	double pos, vel, eff, P, I, D;
+    	bool operator==(const cmd& lhs, const cmd& rhs)
+    	{
+    	    return lhs.pos == rhs.pos &&
+    	    		lhs.vel == rhs.vel &&
+					lhs.eff == rhs.eff &&
+					lhs.P == rhs.P &&
+					lhs.I == rhs.I &&
+					lhs.D == rhs.D;
+    	}
+    	cmd() : pos(0), vel(0), eff(0), P(0), I(0), D(0) {};
+    };
+    // Commands issued by controllers
+    cmd cmds_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    // Last command sent to each joint
+    cmd prev_cmds_[Robot::JointData::NUMBER_OF_JOINTS+3];
 
     // IMU
     hardware_interface::ImuSensorHandle::Data imu_data_;
