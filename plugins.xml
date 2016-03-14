@@ -9,5 +9,10 @@
       The GoalieJumpController performs a coordinated jump to catch the ball.
     </description>
   </class>
+  <class type="op2_control::WalkingController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      The WalkingController performs walking motions using the Walking robotis module.
+    </description>
+  </class>
 </library>
 

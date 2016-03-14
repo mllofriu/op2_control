@@ -139,7 +139,10 @@ public:
 	}
 
 	void starting(const ros::Time& time) {
-
+		// Wake up motion to crouch
+		std_msgs::Int32 msg = std_msgs::Int32();
+		msg.data = 15;
+		start_action(msg);
 	}
 
 	void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) {
