@@ -59,12 +59,6 @@ OP2RobotHW::OP2RobotHW(int wakeup_motion) :
 	// Initialize ROBOTIS-OP  Framework
 	cm730_device_ = std::string("/dev/ttyUSB0");
 	cm730_device2_ = std::string("/dev/ttyUSB1");
-	action_file_ = std::string("/robotis/Data/motion_4096.bin");
-	config_file_ = std::string("/robotis/Data/config.ini");
-
-	if (!(Action::GetInstance()->LoadFile((char *) action_file_.c_str()))) {
-		ROS_ERROR("Reading Action File failed!");
-	}
 
 	linux_cm730_ = new LinuxCM730((char *) cm730_device_.c_str());
 	cm730_ = new Robot::CM730(linux_cm730_);
@@ -75,35 +69,6 @@ OP2RobotHW::OP2RobotHW(int wakeup_motion) :
 			ros::shutdown();
 		}
 	}
-
-	minIni ini = minIni(config_file_);
-	MotionManager::GetInstance()->LoadINISettings(&ini);
-	MotionManager::GetInstance()->AddModule(
-			(MotionModule*) Action::GetInstance());
-
-	motion_timer_ = new LinuxMotionTimer(MotionManager::GetInstance());
-	ROS_INFO("Starting Motion Timer...");
-	motion_timer_->Start();
-	ROS_INFO("Finished starting Motion Timer");
-
-	MotionManager::GetInstance()->SetEnable(true);
-
-	/** Init(stand up) pose */
-	ROS_INFO("Wake up position is %d", wakeup_motion);
-	if (Action::GetInstance()->Start(wakeup_motion))
-		ROS_INFO("Moving to wake up position ...");
-	else
-		ROS_ERROR("Wake up action failed");
-	while (Action::GetInstance()->IsRunning()) {
-		usleep(8 * 1000);
-	}
-
-	MotionManager::GetInstance()->AddModule(
-			(MotionModule*) Walking::GetInstance());
-	MotionManager::GetInstance()->AddModule(
-			(MotionModule*) Head::GetInstance());
-	MotionStatus::m_CurrentJoints.SetEnableBody(true, true);
-	Walking::GetInstance()->LoadINISettings(&ini);
 }
 
 void OP2RobotHW::readMotors(int * ids, int numMotors) {
