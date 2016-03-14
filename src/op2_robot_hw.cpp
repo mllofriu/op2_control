@@ -1,6 +1,7 @@
 #include <angles/angles.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <string>
 
 #include <MX28.h>
 #include <JointData.h>
