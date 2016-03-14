@@ -46,6 +46,7 @@
 #include <LinuxDARwIn.h>
 
 #include "op2_control/posvelacc_pid_command_interface.h"
+#include "op2_control/WalkingConfig.h"
 
 namespace op2_control {
 
@@ -126,6 +127,14 @@ public:
 				&WalkingController::cmd_vel_cb, this);
 		enable_walking_sub_ = nh.subscribe("enable_walking", 1,
 				&WalkingController::enable_walking, this);
+
+		dynamic_reconfigure::Server<op2_control::WalkingConfig> server;
+		dynamic_reconfigure::Server<op2_control::WalkingConfig>::CallbackType f;
+
+		f = boost::bind(&WalkingController::reconfigure, _1, _2);
+		server.setCallback(f);
+
+
 		return true;
 	}
 
@@ -164,6 +173,28 @@ public:
 		} else {
 			Walking::GetInstance()->Stop();
 		}
+	}
+
+	void reconfigure(op2_control::WalkingConfig &config, uint32_t level) {
+		Walking::GetInstance()->X_OFFSET = config.x_offset;
+		Walking::GetInstance()->Y_OFFSET = config.y_offset;
+		Walking::GetInstance()->Z_OFFSET = config.z_offset;
+		Walking::GetInstance()->A_OFFSET = config.yaw_offset;
+		Walking::GetInstance()->R_OFFSET = config.roll_offset;
+		Walking::GetInstance()->P_OFFSET = config.pitch_offset;
+		Walking::GetInstance()->HIP_PITCH_OFFSET = config.hip_pitch_offset;
+		Walking::GetInstance()->PERIOD_TIME = config.period_time;
+		Walking::GetInstance()->DSP_RATIO = config.dsp_ratio;
+		Walking::GetInstance()->STEP_FB_RATIO = config.step_forward_back_ratio;
+		Walking::GetInstance()->BALANCE_ANKLE_PITCH_GAIN = config.balance_ankle_pitch_gain;
+		Walking::GetInstance()->BALANCE_ANKLE_ROLL_GAIN = config.balance_ankle_roll_gain;
+		Walking::GetInstance()->Z_MOVE_AMPLITUDE = config.foot_height;
+		Walking::GetInstance()->Y_SWAP_AMPLITUDE = config.swing_right_left;
+		Walking::GetInstance()->Z_SWAP_AMPLITUDE = config.swing_top_down;
+		Walking::GetInstance()->PELVIS_OFFSET = config.pelvis_offset;
+		Walking::GetInstance()->P_GAIN = config.p_gain;
+		Walking::GetInstance()->D_GAIN = config.d_gain;
+		Walking::GetInstance()->I_GAIN = config.i_gain;
 	}
 
 	std::vector<std::string> joint_names_;

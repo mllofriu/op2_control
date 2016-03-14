@@ -96,7 +96,7 @@ generate_messages(
 )
 
 
-#generate_dynamic_reconfigure_options( config/op2_control.cfg)
+generate_dynamic_reconfigure_options(cfg/Walking.cfg)
 
 ###################################
 ## catkin specific configuration ##
@@ -126,6 +126,7 @@ include_directories(include ${darwin_lib_INCLUDE_DIR})
 add_library(op2_controllers src/darwin_joint_controller.cpp src/goalie_jump_controller.cpp src/walking_controller.cpp)
 target_link_libraries(op2_controllers ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
 add_dependencies(op2_controllers ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(op2_controllers ${PROJECT_NAME}_gencfg)
 
 ## Declare a cpp executable
 #add_executable(${PROJECT_NAME} src/robotis_op_ros_controller.cpp src/robotis_op_hardware_interface.cpp)

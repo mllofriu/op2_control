@@ -15,7 +15,7 @@
 #include <ros/node_handle.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <controller_interface/controller.h>
-#include <realtime_tools/realtime_buffer.h>
+#include <dynamic_reconfigure/server.h>
 
 #include "op2_control/msg_command_inteface.h"
 
