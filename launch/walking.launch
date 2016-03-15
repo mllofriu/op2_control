@@ -13,5 +13,5 @@
 
     <rosparam file="$(find op2_control)/config/walking.yaml" command="load" />
     <node name="message_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
-      args="walking_controller"/> 
+      args="walking_controller"/> <!-- -->
 </launch>

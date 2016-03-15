@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   actionlib
   std_msgs
+  geometry_msgs
   hardware_interface
   controller_manager
   dynamic_reconfigure

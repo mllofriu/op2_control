@@ -34,54 +34,91 @@
 #include <hardware_interface/internal/hardware_resource_manager.h>
 #include <hardware_interface/posvelacc_command_interface.h>
 
-namespace hardware_interface
-{
+#include <LinuxDARwIn.h>
+
+namespace hardware_interface {
 
 /** \brief A handle used to read and command a single joint. */
-class PosVelAccPIDJointHandle : public PosVelAccJointHandle
-{
+class PosVelAccPIDJointHandle: public PosVelAccJointHandle {
 public:
-  PosVelAccPIDJointHandle() : PosVelAccJointHandle(), cmd_p_(0), cmd_i_(0), cmd_d_(0) {}
+	PosVelAccPIDJointHandle() :
+			PosVelAccJointHandle(), cmd_p_(0), cmd_i_(0), cmd_d_(0), m_manager_(
+					0), action_(0), walking_(0) {
+	}
 
-  /**
-   * \param js This joint's state handle
-   * \param cmd_pos A pointer to the storage for this joint's output command position
-   * \param cmd_vel A pointer to the storage for this joint's output command velocity
-   * \param eff_cmd A pointer to the storage for this joint's output command acceleration
-   */
-  PosVelAccPIDJointHandle(const JointStateHandle& js, double* cmd_pos, double* cmd_vel, double* cmd_acc, double* cmd_p, double* cmd_i, double* cmd_d)
-    : PosVelAccJointHandle(js, cmd_pos, cmd_vel, cmd_acc), cmd_p_(cmd_p), cmd_i_(cmd_i), cmd_d_(cmd_d)
-  {
-    if (!cmd_p || !cmd_i || !cmd_d)
-    {
-      throw HardwareInterfaceException("Cannot create handle '" + js.getName() + "'. One of the PID constants commands data pointers is null.");
-    }
-  }
+	/**
+	 * \param js This joint's state handle
+	 * \param cmd_pos A pointer to the storage for this joint's output command position
+	 * \param cmd_vel A pointer to the storage for this joint's output command velocity
+	 * \param eff_cmd A pointer to the storage for this joint's output command acceleration
+	 */
+	PosVelAccPIDJointHandle(const JointStateHandle& js, double* cmd_pos,
+			double* cmd_vel, double* cmd_acc, double* cmd_p, double* cmd_i,
+			double* cmd_d, Robot::MotionManager * m_manager,
+			Robot::Action * action, Robot::Walking * walking) :
+			PosVelAccJointHandle(js, cmd_pos, cmd_vel, cmd_acc), cmd_p_(cmd_p), cmd_i_(
+					cmd_i), cmd_d_(cmd_d), m_manager_(m_manager), action_(
+					action), walking_(walking) {
+		if (!cmd_p || !cmd_i || !cmd_d) {
+			throw HardwareInterfaceException(
+					"Cannot create handle '" + js.getName()
+							+ "'. One of the PID constants commands data pointers is null.");
+		}
+	}
 
-  void setCommand(double cmd_pos, double cmd_vel, double cmd_acc, double cmd_p, double cmd_i, double cmd_d)
-  {
-    setCommandPosition(cmd_pos);
-    setCommandVelocity(cmd_vel);
-    setCommandAcceleration(cmd_acc);
-    setCommandP(cmd_p);
-    setCommandI(cmd_i);
-    setCommandD(cmd_d);
-  }
+	void setCommand(double cmd_pos, double cmd_vel, double cmd_acc,
+			double cmd_p, double cmd_i, double cmd_d) {
+		setCommandPosition(cmd_pos);
+		setCommandVelocity(cmd_vel);
+		setCommandAcceleration(cmd_acc);
+		setCommandP(cmd_p);
+		setCommandI(cmd_i);
+		setCommandD(cmd_d);
+	}
 
-  void setCommandP(double cmd_p) {assert(cmd_p_); *cmd_p_ = cmd_p;}
-  void setCommandI(double cmd_i) {assert(cmd_i_); *cmd_i_ = cmd_i;}
-  void setCommandD(double cmd_d) {assert(cmd_d_); *cmd_d_ = cmd_d;}
+	void setCommandP(double cmd_p) {
+		assert(cmd_p_);
+		*cmd_p_ = cmd_p;
+	}
+	void setCommandI(double cmd_i) {
+		assert(cmd_i_);
+		*cmd_i_ = cmd_i;
+	}
+	void setCommandD(double cmd_d) {
+		assert(cmd_d_);
+		*cmd_d_ = cmd_d;
+	}
 
-  double getCommandP() const {assert(cmd_p_); return *cmd_p_;}
-  double getCommandI() const {assert(cmd_i_); return *cmd_i_;}
-  double getCommandD() const {assert(cmd_d_); return *cmd_d_;}
+	double getCommandP() const {
+		assert(cmd_p_);
+		return *cmd_p_;
+	}
+	double getCommandI() const {
+		assert(cmd_i_);
+		return *cmd_i_;
+	}
+	double getCommandD() const {
+		assert(cmd_d_);
+		return *cmd_d_;
+	}
+	Robot::MotionManager * getMManager() const {
+		return m_manager_;
+	}
+	Robot::Action * getAction() const {
+		return action_;
+	}
+	Robot::Walking * getWalking() const {
+		return walking_;
+	}
 
 private:
-  double* cmd_p_;
-  double* cmd_i_;
-  double* cmd_d_;
+	double* cmd_p_;
+	double* cmd_i_;
+	double* cmd_d_;
+	Robot::MotionManager * m_manager_;
+	Robot::Action * action_;
+	Robot::Walking * walking_;
 };
-
 
 /** \brief Hardware interface to support commanding an array of joints.
  *
@@ -91,7 +128,9 @@ private:
  * \note Getting a joint handle through the getHandle() method \e will claim that resource.
  *
  */
-class PosVelAccPIDJointInterface : public HardwareResourceManager<PosVelAccPIDJointHandle, ClaimResources> {};
+class PosVelAccPIDJointInterface: public HardwareResourceManager<
+		PosVelAccPIDJointHandle, ClaimResources> {
+};
 
 }
 

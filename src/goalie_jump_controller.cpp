@@ -104,34 +104,38 @@ public:
       it->second.setCommandP(3.0);
     }
 
-    state_ = extending;
-    joints_[l_elbow].setCommandPosition(0.0);
-    joints_[l_elbow].setCommandVelocity(2.0);
-    joints_[l_elbow].setCommandP(32.0);
+    state_ = crouching;
+    ROS_INFO("Crouching joint");
+    joints_[r_elbow].setCommandPosition(1.5);
+    joints_[r_elbow].setCommandVelocity(10.0);
+    joints_[r_elbow].setCommandP(32.0);
   }
 
   // "j_shoulder_r","j_shoulder_l","j_high_arm_r","j_high_arm_l","j_low_arm_r","j_low_arm_l","j_pelvis_r",
   // "j_pelvis_l","j_thigh1_r","j_thigh1_l","j_thigh2_r","j_thigh2_l","j_tibia_r","j_tibia_l","j_ankle1_r",
   // "j_ankle1_l","j_ankle2_r","j_ankle2_l","j_pan","j_tilt","j_wrist_r","j_wrist_l","j_gripper_r","j_gripper_l"]
-  std::string l_elbow = "j_low_arm_l";
+  std::string r_elbow = "j_low_arm_r";
 
   void update(const ros::Time& /*time*/, const ros::Duration& /*period*/)
   {
+//	ROS_INFO("Elbow pos: %f", joints_[r_elbow].getPosition());
     switch (state_){
-    case extending:
-      if (joints_[l_elbow].getPosition() > -0.1){
-        joints_[l_elbow].setCommandPosition(-3.0);
-        joints_[l_elbow].setCommandVelocity(2.0);
-        joints_[l_elbow].setCommandP(32.0);
-        state_ = crouching;
+    case crouching:
+      if (joints_[r_elbow].getPosition() > 0.9){
+        joints_[r_elbow].setCommandPosition(-2.0);
+        joints_[r_elbow].setCommandVelocity(10.0);
+        joints_[r_elbow].setCommandP(32.0);
+        state_ = extending;
+        ROS_INFO("Extending joint");
       }
       break;
-    case crouching:
-      if (joints_[l_elbow].getPosition() <= -1.5){
-        joints_[l_elbow].setCommandPosition(-1.5);
-        joints_[l_elbow].setCommandVelocity(2.0);
-        joints_[l_elbow].setCommandP(32.0);
+    case extending:
+      if (joints_[r_elbow].getPosition() <= -1){
+        joints_[r_elbow].setCommandPosition(-1);
+        joints_[r_elbow].setCommandVelocity(10.0);
+        joints_[r_elbow].setCommandP(32.0);
         state_ = holding;
+        ROS_INFO("Holding joint");
       }
       break;
     case holding:

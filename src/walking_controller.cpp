@@ -35,177 +35,139 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include <ros/node_handle.h>
-#include <ros/console.h>
-#include <controller_interface/controller.h>
-
-#include <position_controllers/joint_position_controller.h>
-#include <pluginlib/class_list_macros.h>
-
-// Roobotis framework
-#include <LinuxDARwIn.h>
-
-#include "op2_control/posvelacc_pid_command_interface.h"
-#include "op2_control/WalkingConfig.h"
+#include "op2_control/walking_controller.h"
 
 namespace op2_control {
 
 using namespace Robot;
 
-/**
- * \brief Control all joints to perform a goalie jumb
- *
- * \section ROS interface
- *
- * \param joints Names of the joints to control.
- */
-class WalkingController: public controller_interface::Controller<
-		hardware_interface::PosVelAccPIDJointInterface> {
-public:
-	WalkingController() {
+bool WalkingController::init(
+		hardware_interface::PosVelAccPIDJointInterface * hw,
+		ros::NodeHandle &n) {
+	// List of controlled joints
+	std::string param_name = "joints";
+	if (!n.getParam(param_name, joint_names_)) {
+		ROS_ERROR_STREAM(
+				"Failed to getParam '" << param_name << "' (namespace: "
+						<< n.getNamespace() << ").");
+		return false;
 	}
-	~WalkingController() {
+	n_joints_ = joint_names_.size();
+
+	if (n_joints_ == 0) {
+		ROS_ERROR_STREAM("List of joint names is empty.");
+		return false;
 	}
 
-	bool init(hardware_interface::PosVelAccPIDJointInterface * hw,
-			ros::NodeHandle &n) {
-		// List of controlled joints
-		std::string param_name = "joints";
-		if (!n.getParam(param_name, joint_names_)) {
-			ROS_ERROR_STREAM(
-					"Failed to getParam '" << param_name << "' (namespace: " << n.getNamespace() << ").");
+	// Request all joints to ensure exclusive access
+	for (unsigned int i = 0; i < n_joints_; i++) {
+		try {
+			hw->getHandle(joint_names_[i]);
+		} catch (const hardware_interface::HardwareInterfaceException& e) {
+			ROS_ERROR_STREAM("Exception thrown: " << e.what());
 			return false;
 		}
-		n_joints_ = joint_names_.size();
-
-		if (n_joints_ == 0) {
-			ROS_ERROR_STREAM("List of joint names is empty.");
-			return false;
-		}
-
-		// Request all joints to ensure exclusive access
-		for (unsigned int i = 0; i < n_joints_; i++) {
-			try {
-				hw->getHandle(joint_names_[i]);
-			} catch (const hardware_interface::HardwareInterfaceException& e) {
-				ROS_ERROR_STREAM("Exception thrown: " << e.what());
-				return false;
-			}
-		}
-
-		std::string action_file_ = std::string("/robotis/Data/motion_4096.bin");
-		std::string config_file_ = std::string("/robotis/Data/config.ini");
-
-		if (!(Action::GetInstance()->LoadFile((char *) action_file_.c_str()))) {
-			ROS_ERROR("Reading Action File failed!");
-		}
-
-		minIni ini = minIni(config_file_);
-		MotionManager::GetInstance()->LoadINISettings(&ini);
-		MotionManager::GetInstance()->AddModule(
-				(MotionModule*) Action::GetInstance());
-
-		LinuxMotionTimer* motion_timer_ = new LinuxMotionTimer(
-				MotionManager::GetInstance());
-		ROS_INFO("Starting Motion Timer...");
-		motion_timer_->Start();
-		ROS_INFO("Finished starting Motion Timer");
-
-		MotionManager::GetInstance()->SetEnable(true);
-
-		MotionManager::GetInstance()->AddModule(
-				(MotionModule*) Walking::GetInstance());
-		MotionManager::GetInstance()->AddModule(
-				(MotionModule*) Head::GetInstance());
-		MotionStatus::m_CurrentJoints.SetEnableBody(true, true);
-		Walking::GetInstance()->LoadINISettings(&ini);
-
-		ros::NodeHandle nh;
-		start_action_sub_ = nh.subscribe("start_action", 10,
-				&WalkingController::start_action, this);
-		cmd_vel_sub_ = nh.subscribe("cmd_vel", 1,
-				&WalkingController::cmd_vel_cb, this);
-		enable_walking_sub_ = nh.subscribe("enable_walking", 1,
-				&WalkingController::enable_walking, this);
-
-		dynamic_reconfigure::Server<op2_control::WalkingConfig> server;
-		dynamic_reconfigure::Server<op2_control::WalkingConfig>::CallbackType f;
-
-		f = boost::bind(&WalkingController::reconfigure, _1, _2);
-		server.setCallback(f);
-
-
-		return true;
 	}
 
-	void starting(const ros::Time& time) {
-		// Wake up motion to crouch
-		std_msgs::Int32 msg = std_msgs::Int32();
-		msg.data = 15;
-		start_action(msg);
-	}
+	// Hack to set cm730 already connected
+//	CM730 * cm730 = hw->getHandle(joint_names_[0]).getCM730();
+////	MotionManager::GetInstance()->setCM730(cm730);
+//	MotionManager::GetInstance()->Initialize(cm730);
+	m_manager_ = hw->getHandle(joint_names_[0]).getMManager();
+	action_ = hw->getHandle(joint_names_[0]).getAction();
+	walking_ = hw->getHandle(joint_names_[0]).getWalking();
 
-	void update(const ros::Time& /*time*/, const ros::Duration& /*period*/) {
-	}
+//	ROS_INFO("Starting Robotis framework...");
+//
+//	ROS_INFO("Finished initializing robotis op framework");
 
-	void start_action(std_msgs::Int32 action) {
-		/** Init(stand up) pose */
-		if (Action::GetInstance()->Start(action.data))
-			ROS_INFO("Executing action %d ...", action.data);
-		else
-			ROS_ERROR("Action execution failed");
-		while (Action::GetInstance()->IsRunning()) {
-			usleep(8 * 1000);
-		}
-	}
+	ROS_INFO("Subscribing to topics");
+	ros::NodeHandle nh;
+	start_action_sub_ = nh.subscribe("start_action", 10,
+			&WalkingController::start_action, this);
+	cmd_vel_sub_ = nh.subscribe("cmd_vel", 1, &WalkingController::cmd_vel_cb,
+			this);
+	enable_walking_sub_ = nh.subscribe("enable_walking", 1,
+			&WalkingController::enable_walking, this);
 
-	void cmd_vel_cb(const geometry_msgs::Twist::ConstPtr msg) {
-		double period = Walking::GetInstance()->PERIOD_TIME;
-		Walking::GetInstance()->X_MOVE_AMPLITUDE = (msg->linear.x / period
-				* 1000.0 * 10.0);
-		Walking::GetInstance()->Y_MOVE_AMPLITUDE = (msg->linear.y / period
-				* 1000.0 * 10.0);
-		// compute the angular motion parameters to achieve the desired angular speed
-		Walking::GetInstance()->A_MOVE_AMPLITUDE = (msg->angular.z / period); // in rad per sec
-		// ROS_INFO("Walking: periode %f x %f y %f a %f",Walking::GetInstance()->PERIOD_TIME,Walking::GetInstance()->X_MOVE_AMPLITUDE,Walking::GetInstance()->Y_MOVE_AMPLITUDE,Walking::GetInstance()->A_MOVE_AMPLITUDE);
-	}
+	ROS_INFO("Setting up dynamic reconfigure");
+	dynamic_reconfigure::Server < op2_control::WalkingConfig > server;
+	server.setCallback(boost::bind(&WalkingController::reconfigure, this, _1, _2));
 
-	void enable_walking(std_msgs::BoolConstPtr enable) {
-		if(enable->data){
-			Walking::GetInstance()->Start();
-		} else {
-			Walking::GetInstance()->Stop();
-		}
-	}
+	ROS_INFO("Walker controller initialized");
+	return true;
+}
 
-	void reconfigure(op2_control::WalkingConfig &config, uint32_t level) {
-		Walking::GetInstance()->X_OFFSET = config.x_offset;
-		Walking::GetInstance()->Y_OFFSET = config.y_offset;
-		Walking::GetInstance()->Z_OFFSET = config.z_offset;
-		Walking::GetInstance()->A_OFFSET = config.yaw_offset;
-		Walking::GetInstance()->R_OFFSET = config.roll_offset;
-		Walking::GetInstance()->P_OFFSET = config.pitch_offset;
-		Walking::GetInstance()->HIP_PITCH_OFFSET = config.hip_pitch_offset;
-		Walking::GetInstance()->PERIOD_TIME = config.period_time;
-		Walking::GetInstance()->DSP_RATIO = config.dsp_ratio;
-		Walking::GetInstance()->STEP_FB_RATIO = config.step_forward_back_ratio;
-		Walking::GetInstance()->BALANCE_ANKLE_PITCH_GAIN = config.balance_ankle_pitch_gain;
-		Walking::GetInstance()->BALANCE_ANKLE_ROLL_GAIN = config.balance_ankle_roll_gain;
-		Walking::GetInstance()->Z_MOVE_AMPLITUDE = config.foot_height;
-		Walking::GetInstance()->Y_SWAP_AMPLITUDE = config.swing_right_left;
-		Walking::GetInstance()->Z_SWAP_AMPLITUDE = config.swing_top_down;
-		Walking::GetInstance()->PELVIS_OFFSET = config.pelvis_offset;
-		Walking::GetInstance()->P_GAIN = config.p_gain;
-		Walking::GetInstance()->D_GAIN = config.d_gain;
-		Walking::GetInstance()->I_GAIN = config.i_gain;
-	}
+void WalkingController::starting(const ros::Time& time) {
+	// Wake up motion to crouch
+//	std_msgs::Int32 msg = std_msgs::Int32();
+//	msg.data = 15;
+//	start_action(msg);
+//
+//	ros::Duration(10).sleep();
+//
+//	ROS_INFO("Starting walk");
+//	walking_->m_Joint.SetEnableBodyWithoutHead(true, true);
+//	walking_->Start();
+}
 
-	std::vector<std::string> joint_names_;
-	unsigned int n_joints_;
-	ros::Subscriber start_action_sub_;
-	ros::Subscriber cmd_vel_sub_;
-	ros::Subscriber enable_walking_sub_;
-};
+void WalkingController::start_action(std_msgs::Int32 action) {
+	/** Init(stand up) pose */
+//	action_->m_Joint.SetEnableBody(true, true);
+//	m_manager_->SetEnable(true);
+	if (action_->Start(action.data))
+		ROS_INFO("Executing action %d ...", action.data);
+	else
+		ROS_ERROR("Action execution failed");
+	while (action_->IsRunning()) {
+		usleep(8 * 1000);
+	}
+	ROS_INFO("Action execution completed");
+}
+
+void WalkingController::cmd_vel_cb(const geometry_msgs::Twist::ConstPtr msg) {
+	double period = walking_->PERIOD_TIME;
+	walking_->X_MOVE_AMPLITUDE = (msg->linear.x / period * 1000.0
+			* 10.0);
+	walking_->Y_MOVE_AMPLITUDE = (msg->linear.y / period * 1000.0
+			* 10.0);
+	// compute the angular motion parameters to achieve the desired angular speed
+	walking_->A_MOVE_AMPLITUDE = (msg->angular.z / period); // in rad per sec
+	// ROS_INFO("Walking: periode %f x %f y %f a %f",walking_->PERIOD_TIME,walking_->X_MOVE_AMPLITUDE,walking_->Y_MOVE_AMPLITUDE,walking_->A_MOVE_AMPLITUDE);
+}
+
+void WalkingController::enable_walking(std_msgs::BoolConstPtr enable) {
+	if (enable->data) {
+		walking_->Start();
+	} else {
+		walking_->Stop();
+	}
+}
+
+void WalkingController::reconfigure(op2_control::WalkingConfig &config,
+		uint32_t level) {
+	walking_->X_OFFSET = config.x_offset;
+	walking_->Y_OFFSET = config.y_offset;
+	walking_->Z_OFFSET = config.z_offset;
+	walking_->A_OFFSET = config.yaw_offset;
+	walking_->R_OFFSET = config.roll_offset;
+	walking_->P_OFFSET = config.pitch_offset;
+	walking_->HIP_PITCH_OFFSET = config.hip_pitch_offset;
+	walking_->PERIOD_TIME = config.period_time;
+	walking_->DSP_RATIO = config.dsp_ratio;
+	walking_->STEP_FB_RATIO = config.step_forward_back_ratio;
+	walking_->BALANCE_ANKLE_PITCH_GAIN =
+			config.balance_ankle_pitch_gain;
+	walking_->BALANCE_ANKLE_ROLL_GAIN =
+			config.balance_ankle_roll_gain;
+	walking_->Z_MOVE_AMPLITUDE = config.foot_height;
+	walking_->Y_SWAP_AMPLITUDE = config.swing_right_left;
+	walking_->Z_SWAP_AMPLITUDE = config.swing_top_down;
+	walking_->PELVIS_OFFSET = config.pelvis_offset;
+	walking_->P_GAIN = config.p_gain;
+	walking_->D_GAIN = config.d_gain;
+	walking_->I_GAIN = config.i_gain;
+}
 
 }
 

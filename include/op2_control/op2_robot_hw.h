@@ -33,12 +33,12 @@ class OP2RobotHW :
     public hardware_interface::RobotHW
 {
 public:
-    OP2RobotHW(int wakeup_motion);
+    OP2RobotHW();
     ~OP2RobotHW(){};
 
     // ROS Control
-    void read();
-    void write();
+    int read();
+    void write(bool force_write);
 
     // Motion functions
     void cmdWalking(const geometry_msgs::Twist::ConstPtr& msg);
@@ -48,7 +48,7 @@ public:
 
 private:
     // Helper functions
-    void readMotors(int * ids, int numMotors);
+    int readMotors(int * ids, int numMotors);
 
     // UIDs of joints and sensors
     static const std::string jointUIDs[Robot::JointData::NUMBER_OF_JOINTS+3];
@@ -68,15 +68,18 @@ private:
     state states_[Robot::JointData::NUMBER_OF_JOINTS+3];
     struct cmd{
     	double pos, vel, eff, P, I, D;
-    	bool operator==(const cmd& lhs, const cmd& rhs)
+    	bool operator==(const cmd& rhs)
     	{
-    	    return lhs.pos == rhs.pos &&
-    	    		lhs.vel == rhs.vel &&
-					lhs.eff == rhs.eff &&
-					lhs.P == rhs.P &&
-					lhs.I == rhs.I &&
-					lhs.D == rhs.D;
-    	}
+    	    return pos == rhs.pos &&
+    	    		vel == rhs.vel &&
+					eff == rhs.eff &&
+					P == rhs.P &&
+					I == rhs.I &&
+					D == rhs.D;
+    	};
+    	bool operator!=(const cmd& rhs){
+    		return !(*this == rhs);
+    	};
     	cmd() : pos(0), vel(0), eff(0), P(0), I(0), D(0) {};
     };
     // Commands issued by controllers
