@@ -228,9 +228,14 @@ void* control_loop(void * params){
 		ros::Time current_time = ros::Time::now();
 		ros::Duration elapsed_time = current_time - last_time;
 
-		op_robot_hw->read();
+		int ret_val = op_robot_hw->read();
+
+		if (ret_val == 0){
 		cm->update(current_time, elapsed_time);
 		op_robot_hw->write(false);
+		} else
+			for(int i = 0; i < 4; i++)
+				rate.sleep();
 
 		//		ROS_INFO("Elapsed time: %li", elapsed_time.toNSec());
 		last_time = current_time;
