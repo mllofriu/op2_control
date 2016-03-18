@@ -3,6 +3,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <eigen3/Eigen/Eigen>
+#include <vector>
 
 // Roobotis framework
 #include <LinuxDARwIn.h>
@@ -24,7 +25,7 @@
 #include "op2_control/PIDPosVelAcc.h"
 #include "op2_control/posvelacc_pid_command_interface.h"
 #include "op2_control/msg_command_inteface.h"
-#include <dynamixel_sdk/PacketHandler.h>
+#include <DynamixelSDK.h>
 
 namespace op2_control
 {
@@ -46,9 +47,13 @@ public:
     void checkFall();
     void startAction(std_msgs::Int32 action_index);
 
+    void reset_port();
+
 private:
     // Helper functions
-    int readMotors(UINT16_T * ids, int numMotors);
+    int readMotors(UINT8_T * ids, int numMotors);
+    void open_port();
+
 
     // UIDs of joints and sensors
     static const std::string jointUIDs[Robot::JointData::NUMBER_OF_JOINTS+3];
@@ -97,8 +102,13 @@ private:
     //Robot
     ROBOTIS::PacketHandler * pkt_handler;
     ROBOTIS::PortHandler * port_handler;
+    ROBOTIS::GroupBulkRead * groupBulkRead;
     Robot::LinuxMotionTimer *motion_timer_;
     std::string cm730_device_, cm730_device2_, action_file_, config_file_;
+
+
+    UINT8_T active_joints[20] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+    		18, 19, 20};
 };
 }
 

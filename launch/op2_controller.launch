@@ -3,7 +3,7 @@
 <launch>
 
     <node name="op2_robot_hw" pkg="op2_control" type="op2_robot_hw" required="true" output="screen" launch-prefix="chrt -r 31">
-      <param name="control_rate" value="100"/>
+      <param name="control_rate" value="125"/>
       <param name="wakeup_motion" value="15"/>
     </node>
     
