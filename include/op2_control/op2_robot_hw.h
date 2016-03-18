@@ -24,7 +24,7 @@
 #include "op2_control/PIDPosVelAcc.h"
 #include "op2_control/posvelacc_pid_command_interface.h"
 #include "op2_control/msg_command_inteface.h"
-
+#include <dynamixel_sdk/PacketHandler.h>
 
 namespace op2_control
 {
@@ -48,7 +48,7 @@ public:
 
 private:
     // Helper functions
-    int readMotors(int * ids, int numMotors);
+    int readMotors(UINT16_T * ids, int numMotors);
 
     // UIDs of joints and sensors
     static const std::string jointUIDs[Robot::JointData::NUMBER_OF_JOINTS+3];
@@ -95,8 +95,8 @@ private:
 
 
     //Robot
-    Robot::LinuxCM730 * linux_cm730_;
-    Robot::CM730 * cm730_;
+    ROBOTIS::PacketHandler * pkt_handler;
+    ROBOTIS::PortHandler * port_handler;
     Robot::LinuxMotionTimer *motion_timer_;
     std::string cm730_device_, cm730_device2_, action_file_, config_file_;
 };

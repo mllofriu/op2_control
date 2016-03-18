@@ -1,4 +1,4 @@
-#include <angles/angles.h>
+	#include <angles/angles.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <string>
@@ -13,7 +13,6 @@
 #include <controller_manager/controller_manager.h>
 #include <ros/ros.h>
 #include <ros/console.h>
-#include <dynamixel_sdk/PacketHandler.h>
 
 #include "op2_control/op2_robot_hw.h"
 
@@ -69,8 +68,8 @@ OP2RobotHW::OP2RobotHW() :
 //			(MotionModule*) Head::GetInstance());
 ////	MotionStatus::m_CurrentJoints.SetEnableBody(true, true);
 //	Walking::GetInstance()->LoadINISettings(&ini);
-	PacketHandler * pkt_handler = PacketHandler::GetPacketHandler(1.0);
-	PortHandler * port_handler = (PortHandler*)PortHandler::GetPortHandler("/dev/ttyUSB0");
+	pkt_handler = PacketHandler::GetPacketHandler(1.0);
+	port_handler = (PortHandler*)PortHandler::GetPortHandler("/dev/ttyUSB0");
 	if (port_handler->OpenPort()) {
 		ROS_INFO("Succeeded to open the port!\n");
 	} else {
@@ -147,7 +146,7 @@ OP2RobotHW::OP2RobotHW() :
 	ROS_INFO("OP robot created");
 }
 
-int OP2RobotHW::readMotors(int * ids, int numMotors) {
+int OP2RobotHW::readMotors(UINT16_T * ids, int numMotors) {
 //	cm730_->MakeBulkReadMotorData(ids, numMotors);
 //	int ret_val = cm730_->BulkRead();
 //	if (ret_val != CM730::SUCCESS) {
@@ -177,14 +176,13 @@ int OP2RobotHW::readMotors(int * ids, int numMotors) {
 //	}
 	int ret_val = 0;
 	for (int id = 0; id < numMotors; id++) {
-
-		int value;
-		int error;
-		int read_return = cm730_->ReadWord(ids[id], MX28::P_PRESENT_POSITION_L,
-				&value, &error);
-		if (read_return == CM730::SUCCESS) {
-			states_[ids[id] - 1].pos = MX28::Value2Angle(value)
+		UINT16_T data;
+		UINT8_T error;
+		int read_return = pkt_handler->Read2ByteTxRx(port_handler, ids[id], MX28::P_PRESENT_POSITION_L, &data, &error);
+		if (read_return == COMM_SUCCESS) {
+			states_[ids[id] - 1].pos = MX28::Value2Angle(data)
 					* (M_PI / 180.0);
+			ROS_INFO("Successfully read joint %d, position %f", ids[id], states_[ids[id] - 1].pos);
 		} else {
 			ROS_ERROR(
 					"Error reading position for joint %d, read return error: %d",
@@ -221,7 +219,7 @@ int OP2RobotHW::read() {
 //	readMotors(lLeg, 6);
 //	int rArm[3] = { 1, 3, 5 };
 //	readMotors(rArm, 3);
-	int many[20] = { 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+	UINT16_T many[20] = { 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
 			19, 20 };
 //	int many[15] = { 5 };
 	return readMotors(many, 19);
@@ -232,45 +230,45 @@ int OP2RobotHW::read() {
 }
 
 void OP2RobotHW::write(bool force_write) {
-	int param[(JointData::NUMBER_OF_JOINTS - 1) * 9];
-	int n = 0;
-	int joint_num = 0;
-	for (int id = 1; id < JointData::NUMBER_OF_JOINTS; id++) {
-		// Only write if cmd has changed
-		if (force_write || cmds_[id - 1] != prev_cmds_[id - 1]) {
-			param[n++] = id;
-
-			// Set PID
-			param[n++] = floor(cmds_[id - 1].D);
-			param[n++] = floor(cmds_[id - 1].I);
-			param[n++] = floor(cmds_[id - 1].P);
-			// Reserved position
-			param[n++] = 0;
-
-			// Set position
-//			ROS_INFO("Desired pos in radians %f", cmds_[id - 1].pos);
-			int value = MX28::Angle2Value(cmds_[id - 1].pos * 180.0 / M_PI);
-			param[n++] = CM730::GetLowByte(value);
-			param[n++] = CM730::GetHighByte(value);
-//			ROS_INFO("Writing pos %d to motor %d", value, id);
-			// Velocity goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec
-			// so vel in motor is vel in rad/2 / 0.0119381
-			int vel = cmds_[id - 1].vel / 0.0119381;
-			param[n++] = CM730::GetLowByte(vel);
-			param[n++] = CM730::GetHighByte(vel);
-			joint_num++;
-
-			prev_cmds_[id - 1] = cmds_[id - 1];
-		}
-	}
-
-	if (joint_num > 0) {
-		ROS_INFO("Sending movement commands for %d joints", joint_num);
-		int ret_val = cm730_->SyncWrite(MX28::P_D_GAIN, 9, joint_num, param);
-		if (ret_val != CM730::SUCCESS) {
-			ROS_ERROR("Error writing instructions: %d", ret_val);
-		}
-	}
+//	int param[(JointData::NUMBER_OF_JOINTS - 1) * 9];
+//	int n = 0;
+//	int joint_num = 0;
+//	for (int id = 1; id < JointData::NUMBER_OF_JOINTS; id++) {
+//		// Only write if cmd has changed
+//		if (force_write || cmds_[id - 1] != prev_cmds_[id - 1]) {
+//			param[n++] = id;
+//
+//			// Set PID
+//			param[n++] = floor(cmds_[id - 1].D);
+//			param[n++] = floor(cmds_[id - 1].I);
+//			param[n++] = floor(cmds_[id - 1].P);
+//			// Reserved position
+//			param[n++] = 0;
+//
+//			// Set position
+////			ROS_INFO("Desired pos in radians %f", cmds_[id - 1].pos);
+//			int value = MX28::Angle2Value(cmds_[id - 1].pos * 180.0 / M_PI);
+//			param[n++] = CM730::GetLowByte(value);
+//			param[n++] = CM730::GetHighByte(value);
+////			ROS_INFO("Writing pos %d to motor %d", value, id);
+//			// Velocity goes from 0..1023. each unit is 0.114 rpm = 0.0119381 rad/sec
+//			// so vel in motor is vel in rad/2 / 0.0119381
+//			int vel = cmds_[id - 1].vel / 0.0119381;
+//			param[n++] = CM730::GetLowByte(vel);
+//			param[n++] = CM730::GetHighByte(vel);
+//			joint_num++;
+//
+//			prev_cmds_[id - 1] = cmds_[id - 1];
+//		}
+//	}
+//
+//	if (joint_num > 0) {
+//		ROS_INFO("Sending movement commands for %d joints", joint_num);
+//		int ret_val = cm730_->SyncWrite(MX28::P_D_GAIN, 9, joint_num, param);
+//		if (ret_val != CM730::SUCCESS) {
+//			ROS_ERROR("Error writing instructions: %d", ret_val);
+//		}
+//	}
 
 }
 
