@@ -2,3 +2,4 @@
 goalie_jump_controller:
   type: op2_control::GoalieJumpController
   joints: ["j_shoulder_r","j_shoulder_l","j_high_arm_r","j_high_arm_l","j_low_arm_r","j_low_arm_l","j_pelvis_r","j_pelvis_l","j_thigh1_r","j_thigh1_l","j_thigh2_r","j_thigh2_l","j_tibia_r","j_tibia_l","j_ankle1_r","j_ankle1_l","j_ankle2_r","j_ankle2_l","j_pan","j_tilt","j_wrist_r","j_wrist_l","j_gripper_r","j_gripper_l"]
+  limitknees: 0.8

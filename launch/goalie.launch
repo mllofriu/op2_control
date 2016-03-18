@@ -1,17 +1,10 @@
 <?xml version="1.0"?>
 
 <launch>
-<!-- launch-prefix="chrt -r 30" -->
-	<node name="op2_robot_hw" pkg="op2_control" type="op2_robot_hw" required="true" output="screen">
-      <param name="control_rate" value="125"/>
-      <param name="wakeup_motion" value="15"/>
-    </node>
 
-    <rosparam file="$(find op2_control)/config/robotis_op_states.yaml" command="load" />
-    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
-      args="--shutdown-timeout 1 joint_state_controller imu_sensor_controller" ns="/"/> 
+	<rosparam file="$(find op2_control)/config/goalie_jump.yaml" command="load"/>      
+    <node name="goalie_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+      args="goalie_jump_controller" ns="/"/> 
+
     
-    <rosparam file="$(find op2_control)/config/goalie_jump.yaml" command="load" />
-    <node name="goalie_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
-      args="--shutdown-timeout 1 --stopped goalie_jump_controller" ns="/"/> 
 </launch>

@@ -7,17 +7,19 @@
 #include <stdlib.h>
 
 #include <MX28.h>
+#include <CM730.h>
 #include <JointData.h>
 
 #include <controller_manager/controller_manager.h>
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <dynamixel_sdk/PacketHandler.h>
 
 #include "op2_control/op2_robot_hw.h"
 
 namespace op2_control {
-using namespace Robot;
-
+using namespace Robot; // TODO: needed?
+using namespace ROBOTIS;
 const std::string OP2RobotHW::jointUIDs[JointData::NUMBER_OF_JOINTS + 3] = {
 		"j_shoulder_r", "j_shoulder_l", "j_high_arm_r", "j_high_arm_l",
 		"j_low_arm_r", "j_low_arm_l", "j_pelvis_r", "j_pelvis_l", "j_thigh1_r",
@@ -31,26 +33,24 @@ OP2RobotHW::OP2RobotHW() :
 	 * OP Framework initialization
 	 **/
 	// Initialize ROBOTIS-OP  Framework
-	cm730_device_ = std::string("/dev/ttyUSB0");
-	cm730_device2_ = std::string("/dev/ttyUSB1");
-	std::string action_file_ = std::string("/robotis/Data/motion_4096.bin");
-	std::string config_file_ = std::string("/robotis/Data/config.ini");
-
-	ROS_INFO("Initializing CM730");
-	linux_cm730_ = new LinuxCM730((char *) cm730_device_.c_str());
-	cm730_ = new Robot::CM730(linux_cm730_);
-	if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
-		linux_cm730_->SetPortName((char *) cm730_device2_.c_str());
-		if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
-			ROS_ERROR("Fail to initialize Motion Manager!");
-			ros::shutdown();
-		}
-	}
-
+//	cm730_device_ = std::string("/dev/ttyUSB0");
+//	cm730_device2_ = std::string("/dev/ttyUSB1");
+//	std::string action_file_ = std::string("/robotis/Data/motion_4096.bin");
+//	std::string config_file_ = std::string("/robotis/Data/config.ini");
+//
+//	ROS_INFO("Initializing CM730");
+//	linux_cm730_ = new LinuxCM730((char *) cm730_device_.c_str());
+//	cm730_ = new Robot::CM730(linux_cm730_);
+//	if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
+//		linux_cm730_->SetPortName((char *) cm730_device2_.c_str());
+//		if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
+//			ROS_ERROR("Fail to initialize Motion Manager!");
+//			ros::shutdown();
+//		}
+//	}
 //	if ((Action::GetInstance()->LoadFile((char *) action_file_.c_str())) == false) {
 //		ROS_ERROR("Reading Action File failed!");
 //	}
-
 //	minIni ini = minIni(config_file_);
 //	MotionManager::GetInstance()->LoadINISettings(&ini);
 //	MotionManager::GetInstance()->AddModule(
@@ -69,6 +69,40 @@ OP2RobotHW::OP2RobotHW() :
 //			(MotionModule*) Head::GetInstance());
 ////	MotionStatus::m_CurrentJoints.SetEnableBody(true, true);
 //	Walking::GetInstance()->LoadINISettings(&ini);
+	PacketHandler * pkt_handler = PacketHandler::GetPacketHandler(1.0);
+	PortHandler * port_handler = (PortHandler*)PortHandler::GetPortHandler("/dev/ttyUSB0");
+	if (port_handler->OpenPort()) {
+		ROS_INFO("Succeeded to open the port!\n");
+	} else {
+		ROS_ERROR("Failed to open the port!\n");
+		ROS_ERROR("Press any key to terminate...\n");
+	}
+	if (port_handler->SetBaudRate(1000000)) {
+		printf("Succeeded to change the baudrate!\n");
+	} else {
+		ROS_ERROR("Failed to change the baudrate!\n");
+		ROS_ERROR("Press any key to terminate...\n");
+	}
+
+	// TODO:
+	// for loop ping --> no response : return false
+	ROS_INFO("Enable motors power");
+	int dxl_comm_result;
+	dxl_comm_result = pkt_handler->Write1ByteTxOnly(port_handler, CM730::ID_CM, CM730::P_DXL_POWER, 1);
+	if (dxl_comm_result != COMM_SUCCESS)
+		ROS_ERROR("Could not activate MX-28 power");
+
+	for (int id = 1; id < 20; id++) {
+		UINT8_T dxl_error = 0;                                  // DXL error
+		UINT16_T dxl_model_number;                           // DXL model number
+		dxl_comm_result = COMM_TX_FAIL;
+		dxl_comm_result = pkt_handler->Ping(port_handler, id, &dxl_model_number,
+				&dxl_error);
+		if (dxl_comm_result != COMM_SUCCESS)
+			ROS_INFO("Joint %id did not respond, error: %d", id, dxl_comm_result);
+		else
+			ROS_INFO("Joint %id responded", id);
+	}
 
 	/**
 	 * ROS control interface register
@@ -109,43 +143,75 @@ OP2RobotHW::OP2RobotHW() :
 	// Force write to all motors for the first time
 	this->write(true);
 	// Enable torque
-	ROS_INFO("Enable motors torque");
-	int error;
-	cm730_->WriteByte(CM730::ID_BROADCAST, MX28::P_TORQUE_ENABLE, 1, &error);
 
 	ROS_INFO("OP robot created");
 }
 
 int OP2RobotHW::readMotors(int * ids, int numMotors) {
-	cm730_->MakeBulkReadMotorData(ids, numMotors);
-	int ret_val = cm730_->BulkRead();
-	if (ret_val != CM730::SUCCESS) {
-		ROS_ERROR("Error reading bulk: %d", ret_val);
-	} else {
-		for (int id = 0; id < numMotors; id++) {
-			int error = cm730_->m_BulkReadData[ids[id]].error;
-			if (error == 0) {
-				int pos = cm730_->m_BulkReadData[ids[id]].ReadWord(
-						MX28::P_PRESENT_POSITION_L);
-				states_[ids[id] - 1].pos = MX28::Value2Angle(pos)
-						* (M_PI / 180.0);
-				int vel = cm730_->m_BulkReadData[ids[id]].ReadWord(
-						MX28::P_PRESENT_SPEED_L);
-				states_[ids[id] - 1].vel = MX28::Value2Angle(vel)
-						* (M_PI / 180.0);
-				int load = cm730_->m_BulkReadData[ids[id]].ReadWord(
-						MX28::P_PRESENT_LOAD_L);
-				states_[ids[id] - 1].eff = load;
-			} else if (error == -1) {
-				ROS_ERROR("Packet not received for motor %d", ids[id]);
-			} else {
-				ROS_ERROR("Error on read data for motor %d, with error num %d",
-						ids[id], error);
-			}
+//	cm730_->MakeBulkReadMotorData(ids, numMotors);
+//	int ret_val = cm730_->BulkRead();
+//	if (ret_val != CM730::SUCCESS) {
+//		ROS_ERROR("Error reading bulk: %d", ret_val);
+//	} else {
+//		for (int id = 0; id < numMotors; id++) {
+//			int error = cm730_->m_BulkReadData[ids[id]].error;
+//			if (error == 0) {
+//				int pos = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//						MX28::P_PRESENT_POSITION_L);
+//				states_[ids[id] - 1].pos = MX28::Value2Angle(pos)
+//						* (M_PI / 180.0);
+//				int vel = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//						MX28::P_PRESENT_SPEED_L);
+//				states_[ids[id] - 1].vel = MX28::Value2Angle(vel)
+//						* (M_PI / 180.0);
+//				int load = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//						MX28::P_PRESENT_LOAD_L);
+//				states_[ids[id] - 1].eff = load;
+//			} else if (error == -1) {
+//				ROS_ERROR("Packet not received for motor %d", ids[id]);
+//			} else {
+//				ROS_ERROR("Error on read data for motor %d, with error num %d",
+//						ids[id], error);
+//			}
+//		}
+//	}
+	int ret_val = 0;
+	for (int id = 0; id < numMotors; id++) {
+
+		int value;
+		int error;
+		int read_return = cm730_->ReadWord(ids[id], MX28::P_PRESENT_POSITION_L,
+				&value, &error);
+		if (read_return == CM730::SUCCESS) {
+			states_[ids[id] - 1].pos = MX28::Value2Angle(value)
+					* (M_PI / 180.0);
+		} else {
+			ROS_ERROR(
+					"Error reading position for joint %d, read return error: %d",
+					ids[id], read_return);
+			return read_return;
 		}
+
+//		int error = cm730_->m_BulkReadData[ids[id]].error;
+//		if (error == 0) {
+//			int pos = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//					MX28::P_PRESENT_POSITION_L);
+//
+//			int vel = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//					MX28::P_PRESENT_SPEED_L);
+//			states_[ids[id] - 1].vel = MX28::Value2Angle(vel) * (M_PI / 180.0);
+//			int load = cm730_->m_BulkReadData[ids[id]].ReadWord(
+//					MX28::P_PRESENT_LOAD_L);
+//			states_[ids[id] - 1].eff = load;
+//		} else if (error == -1) {
+//			ROS_ERROR("Packet not received for motor %d", ids[id]);
+//		} else {
+//			ROS_ERROR("Error on read data for motor %d, with error num %d",
+//					ids[id], error);
+//		}
 	}
 
-	return ret_val;
+	return CM730::SUCCESS;
 }
 
 int OP2RobotHW::read() {
@@ -155,9 +221,10 @@ int OP2RobotHW::read() {
 //	readMotors(lLeg, 6);
 //	int rArm[3] = { 1, 3, 5 };
 //	readMotors(rArm, 3);
-	int many[15] = { 1, 3, 5, 7, 9, 11, 13, 15, 17, 8, 10, 12, 14, 16, 18 };
+	int many[20] = { 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+			19, 20 };
 //	int many[15] = { 5 };
-	return readMotors(many, 15);
+	return readMotors(many, 19);
 //	int lArm[3] = { 2, 4, 6 };
 //	readMotors(lArm, 3);
 //	int head[2] = { 19, 20 };
@@ -212,7 +279,7 @@ void OP2RobotHW::write(bool force_write) {
 op2_control::OP2RobotHW * op_robot_hw;
 controller_manager::ControllerManager * cm;
 
-void* control_loop(void * params){
+void* control_loop(void * params) {
 	ros::NodeHandle private_nh("~");
 
 	double control_rate;
@@ -229,13 +296,11 @@ void* control_loop(void * params){
 		ros::Duration elapsed_time = current_time - last_time;
 
 		int ret_val = op_robot_hw->read();
-
-		if (ret_val == 0){
-		cm->update(current_time, elapsed_time);
-		op_robot_hw->write(false);
+		if (ret_val == 0) {
+			cm->update(current_time, elapsed_time);
+			op_robot_hw->write(false);
 		} else
-			for(int i = 0; i < 4; i++)
-				rate.sleep();
+			rate.sleep(); // Wait an extra cycle if something went wrong
 
 		//		ROS_INFO("Elapsed time: %li", elapsed_time.toNSec());
 		last_time = current_time;
@@ -277,8 +342,7 @@ int main(int argc, char** argv) {
 		printf("error = %d\n", error);
 
 	// create and start the thread
-	if ((error = pthread_create(&thread, &attr, &control_loop,
-			(void*)0)) != 0)
+	if ((error = pthread_create(&thread, &attr, &control_loop, (void*) 0)) != 0)
 		exit(-1);
 
 	ros::waitForShutdown();

@@ -3,12 +3,11 @@
 <launch>
 
     <node name="op2_robot_hw" pkg="op2_control" type="op2_robot_hw" required="true" output="screen" launch-prefix="chrt -r 31">
-      <param name="control_rate" value="100"/>
+      <param name="control_rate" value="10"/>
       <param name="wakeup_motion" value="15"/>
     </node>
-
+    
     <rosparam file="$(find op2_control)/config/robotis_op_states.yaml" command="load" />
     <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
-      args="--shutdown-timeout 1 joint_state_controller imu_sensor_controller" ns="/"/> 
-
+      args="--shutdown-timeout 1 joint_state_controller" ns="/"/>
 </launch>

@@ -64,6 +64,18 @@ public:
   GoalieJumpController() {}
   ~GoalieJumpController() {}
 
+  float limitknees;
+  float pi=3.1415962;
+  float dtr=pi/180;
+  float h=-65;
+  float k=128;
+  float a=25;
+  float Tetha_Hip=-65*dtr;
+  float Tetha_Knee=128*dtr;
+  float Tetha_Ankle=(66)*dtr;
+  int count=0;
+
+
   bool init(hardware_interface::PosVelAccPIDJointInterface * hw, ros::NodeHandle &n)
   {
     // List of controlled joints
@@ -93,8 +105,71 @@ public:
       }
     }
 
+
+    param_name = "limitknees";
+    if(!n.getParam(param_name, limitknees))
+    {
+      ROS_ERROR_STREAM("Failed to getParam '" << param_name << "' (namespace: " << n.getNamespace() << ").");
+      return false;
+    }
+
     return true;
   }
+
+
+
+void ZeroP(void)
+  {
+    // Semantic zero
+    ROS_INFO("JuanProgamo 10 y leyo %f", limitknees);
+    ROS_INFO("Crouching joint");
+    joints_["j_ankle1_l"].setCommandP(62.0);
+    joints_["j_ankle1_r"].setCommandP(63.0);
+    joints_["j_ankle2_l"].setCommandP(62.0);
+    joints_["j_ankle2_r"].setCommandP(62.0);
+    joints_["j_tibia_l"].setCommandP(62);
+    joints_["j_tibia_r"].setCommandP(62.0);
+    joints_["j_thigh1_l"].setCommandP(62.0);
+ 	joints_["j_thigh1_r"].setCommandP(62.0);
+ 	joints_["j_thigh2_l"].setCommandP(62.0);
+	joints_["j_thigh2_r"].setCommandP(62.0);
+	joints_["j_pelvis_l"].setCommandP(62.0);
+	joints_["j_pelvis_r"].setCommandP(62.0);
+             
+	joints_["j_ankle1_l"].setCommandVelocity(0.5);
+    joints_["j_ankle1_r"].setCommandVelocity(0.5);
+    joints_["j_ankle2_l"].setCommandVelocity(0.5);
+    joints_["j_ankle2_r"].setCommandVelocity(0.5);
+    joints_["j_tibia_l"].setCommandVelocity(1.0);
+    joints_["j_tibia_r"].setCommandVelocity(1.0);
+    joints_["j_thigh1_l"].setCommandVelocity(0.5);
+    joints_["j_thigh1_r"].setCommandVelocity(0.5);
+    joints_["j_thigh2_l"].setCommandVelocity(0.5);
+    joints_["j_thigh2_r"].setCommandVelocity(0.5);
+    joints_["j_pelvis_l"].setCommandVelocity(0.5);
+    joints_["j_pelvis_r"].setCommandVelocity(0.5);
+    
+	joints_["j_ankle1_l"].setCommandPosition(0);
+    joints_["j_ankle1_r"].setCommandPosition(0);
+    joints_["j_ankle2_l"].setCommandPosition(0);
+    joints_["j_ankle2_r"].setCommandPosition(0);
+    joints_["j_tibia_l"].setCommandPosition(0);
+    joints_["j_tibia_r"].setCommandPosition(0);
+	joints_["j_thigh1_l"].setCommandPosition(0);
+	joints_["j_thigh1_r"].setCommandPosition(0);
+	joints_["j_thigh2_l"].setCommandPosition(0);
+	joints_["j_thigh2_r"].setCommandPosition(0);
+	joints_["j_pelvis_l"].setCommandPosition(0);
+	joints_["j_pelvis_r"].setCommandPosition(0);
+
+//    joints_["j_ankle1_l"].setCommandVelocity(1.0);
+//    joints_["j_ankle1_l"].setCommandPosition(0);
+
+
+
+
+  }
+
 
   void starting(const ros::Time& time)
   {
@@ -103,12 +178,21 @@ public:
       it->second.setCommandPosition(it->second.getPosition());
       it->second.setCommandP(3.0);
     }
-
-    state_ = crouching;
+    //if (count>300) 
+    //	{ 
+    		state_ = crouching;
+   // 		count=0;
+   // 	}
+   // else 
+   // 	{
+   // 		count++;
+   // 		ROS_INFO("\n \n \n ESPERANDP 10 SEGUNDOS \n \n \n");
+   // 	}
+    ROS_INFO("JuanProgamo 10 y leyo %f", limitknees);
     ROS_INFO("Crouching joint");
-    joints_[r_elbow].setCommandPosition(1.5);
-    joints_[r_elbow].setCommandVelocity(10.0);
-    joints_[r_elbow].setCommandP(32.0);
+    ZeroP();
+
+   
   }
 
   // "j_shoulder_r","j_shoulder_l","j_high_arm_r","j_high_arm_l","j_low_arm_r","j_low_arm_l","j_pelvis_r",
@@ -118,27 +202,95 @@ public:
 
   void update(const ros::Time& /*time*/, const ros::Duration& /*period*/)
   {
+  	float d=0.85;
 //	ROS_INFO("Elbow pos: %f", joints_[r_elbow].getPosition());
     switch (state_){
     case crouching:
-      if (joints_[r_elbow].getPosition() > 0.9){
-        joints_[r_elbow].setCommandPosition(-2.0);
-        joints_[r_elbow].setCommandVelocity(10.0);
-        joints_[r_elbow].setCommandP(32.0);
+      if ((joints_["j_tibia_r"].getPosition() < 0.1) && (count>800)) 
+      {
+
+      	joints_["j_thigh2_l"].setCommandPosition(-Tetha_Hip*d);
+		joints_["j_thigh2_r"].setCommandPosition(Tetha_Hip*d);
+
+		joints_["j_tibia_r"].setCommandPosition(Tetha_Knee*d);
+		joints_["j_tibia_l"].setCommandPosition(-Tetha_Knee*d);
+    	
+		joints_["j_ankle1_l"].setCommandPosition((-Tetha_Ankle)*d);
+    	joints_["j_ankle1_r"].setCommandPosition((Tetha_Ankle)*d);
+
         state_ = extending;
         ROS_INFO("Extending joint");
       }
+      else {
+      		count++;
+      		ROS_INFO("ESPERANDO");	
+      }
       break;
+
     case extending:
-      if (joints_[r_elbow].getPosition() <= -1){
-        joints_[r_elbow].setCommandPosition(-1);
-        joints_[r_elbow].setCommandVelocity(10.0);
-        joints_[r_elbow].setCommandP(32.0);
+      if (joints_["j_tibia_r"].getPosition() > (Tetha_Knee*d-(3*dtr))){
+		float d=0.2;
+		
+		joints_["j_ankle2_l"].setCommandVelocity((6));
+    	joints_["j_ankle2_r"].setCommandVelocity((0));
+		
+		//joints_["j_thigh2_r"].setCommandPosition(Tetha_Hip*d);
+		//joints_["j_tibia_r"].setCommandPosition(Tetha_Knee*d);
+    	//joints_["j_ankle1_r"].setCommandPosition((Tetha_Ankle)*d);
+		
+
+
+		joints_["j_ankle2_l"].setCommandPosition((45)*dtr);
+    	joints_["j_ankle2_r"].setCommandPosition((45)*dtr);
+		
+
+
+		joints_["j_thigh2_r"].setCommandVelocity((4));
+		joints_["j_tibia_r"].setCommandVelocity((0));
+		joints_["j_ankle1_r"].setCommandVelocity((4));
+
+
+		//joints_["j_thigh2_r"].setCommandPosition(Tetha_Hip*d);
+		//joints_["j_tibia_r"].setCommandPosition(Tetha_Knee*d);
+    	//joints_["j_ankle1_r"].setCommandPosition((Tetha_Ankle)*d);
+	
+                
+
+
         state_ = holding;
         ROS_INFO("Holding joint");
       }
       break;
-    case holding:
+    
+	case holding:
+
+      if (joints_["j_ankle2_l"].getPosition() > (30*dtr)){
+//      	joints_["j_thigh2_l"].setCommandPosition(-Tetha_Hip*d);
+		float d=0.0;
+
+
+		joints_["j_thigh2_l"].setCommandVelocity((4));
+		joints_["j_tibia_l"].setCommandVelocity((0));
+		joints_["j_ankle1_l"].setCommandVelocity((4));
+
+
+		joints_["j_thigh2_l"].setCommandPosition(Tetha_Hip*d);
+		joints_["j_tibia_l"].setCommandPosition(Tetha_Knee*d);
+    	joints_["j_ankle1_l"].setCommandPosition((Tetha_Ankle)*d);
+		//joints_["j_thigh2_r"].setCommandPosition(Tetha_Hip*d);
+
+		//joints_["j_tibia_r"].setCommandPosition(Tetha_Knee*d);
+//		joints_["j_tibia_l"].setCommandPosition(-Tetha_Knee*d);
+    	
+//		joints_["j_ankle1_l"].setCommandPosition((-Tetha_Ankle)*d);
+    	//joints_["j_ankle1_r"].setCommandPosition((Tetha_Ankle)*d);
+	
+        state_ = relaxing;
+        ROS_INFO("relaxing joint");
+      }
+    
+
+    case relaxing:
       break;
     }
     
@@ -150,7 +302,7 @@ public:
   // std::vector< hardware_interface::PosVelAccPIDJointHandle > joints_;
   unsigned int n_joints_;
 
-  enum State { extending, crouching, holding };
+  enum State { extending, crouching, holding ,relaxing};
   State state_;
 
 

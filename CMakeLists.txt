@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   position_controllers
   angles
+  dynamixel_sdk
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,9 +111,9 @@ generate_dynamic_reconfigure_options(cfg/Walking.cfg)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES op2_control
+  LIBRARIES op2_control dynamixel_sdk
   CATKIN_DEPENDS roscpp rospy actionlib_msgs actionlib std_msgs hardware_interface controller_manager dynamic_reconfigure  tf message_runtime pluginlib
-  DEPENDS darwin_lib_LIBRARY
+  DEPENDS darwin_lib_LIBRARY 
 )
 
 ###########
