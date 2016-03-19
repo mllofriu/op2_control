@@ -125,7 +125,7 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 include_directories(include ${darwin_lib_INCLUDE_DIR})
 
-add_library(op2_controllers src/darwin_joint_controller.cpp src/goalie_jump_controller.cpp src/walking_controller.cpp)
+add_library(op2_controllers src/goalie_jump_controller.cpp)
 target_link_libraries(op2_controllers ${catkin_LIBRARIES} ${darwin_lib_LIBRARY} ${Boost_LIBRARIES})
 add_dependencies(op2_controllers ${${PROJECT_NAME}_EXPORTED_TARGETS})
 add_dependencies(op2_controllers ${PROJECT_NAME}_gencfg)

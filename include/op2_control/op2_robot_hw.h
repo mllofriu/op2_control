@@ -49,6 +49,7 @@ public:
 
     void reset_port();
 
+    static const int NUM_JOINTS = 20;
 private:
     // Helper functions
     int readMotors(UINT8_T * ids, int numMotors);
@@ -56,7 +57,7 @@ private:
 
 
     // UIDs of joints and sensors
-    static const std::string jointUIDs[Robot::JointData::NUMBER_OF_JOINTS+3];
+    static const std::string jointUIDs[NUM_JOINTS+1];
 
     // ros control interfaces
     hardware_interface::JointStateInterface joint_state_interface_;
@@ -70,7 +71,7 @@ private:
     	double pos, vel, eff;
     	state() : pos(0), vel(0), eff(0) {};
     };
-    state states_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    state states_[NUM_JOINTS+1];
     struct cmd{
     	double pos, vel, eff, P, I, D;
     	bool operator==(const cmd& rhs)
@@ -88,9 +89,9 @@ private:
     	cmd() : pos(0), vel(0), eff(0), P(0), I(0), D(0) {};
     };
     // Commands issued by controllers
-    cmd cmds_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    cmd cmds_[NUM_JOINTS+1];
     // Last command sent to each joint
-    cmd prev_cmds_[Robot::JointData::NUMBER_OF_JOINTS+3];
+    cmd prev_cmds_[NUM_JOINTS+1];
 
     // IMU
     hardware_interface::ImuSensorHandle::Data imu_data_;
@@ -105,10 +106,6 @@ private:
     ROBOTIS::GroupBulkRead * groupBulkRead;
     Robot::LinuxMotionTimer *motion_timer_;
     std::string cm730_device_, cm730_device2_, action_file_, config_file_;
-
-
-    UINT8_T active_joints[20] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-    		18, 19, 20};
 };
 }
 

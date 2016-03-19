@@ -42,8 +42,7 @@ namespace hardware_interface {
 class PosVelAccPIDJointHandle: public PosVelAccJointHandle {
 public:
 	PosVelAccPIDJointHandle() :
-			PosVelAccJointHandle(), cmd_p_(0), cmd_i_(0), cmd_d_(0), m_manager_(
-					0), action_(0), walking_(0) {
+			PosVelAccJointHandle(), cmd_p_(0), cmd_i_(0), cmd_d_(0) {
 	}
 
 	/**
@@ -54,11 +53,9 @@ public:
 	 */
 	PosVelAccPIDJointHandle(const JointStateHandle& js, double* cmd_pos,
 			double* cmd_vel, double* cmd_acc, double* cmd_p, double* cmd_i,
-			double* cmd_d, Robot::MotionManager * m_manager,
-			Robot::Action * action, Robot::Walking * walking) :
+			double* cmd_d) :
 			PosVelAccJointHandle(js, cmd_pos, cmd_vel, cmd_acc), cmd_p_(cmd_p), cmd_i_(
-					cmd_i), cmd_d_(cmd_d), m_manager_(m_manager), action_(
-					action), walking_(walking) {
+					cmd_i), cmd_d_(cmd_d) {
 		if (!cmd_p || !cmd_i || !cmd_d) {
 			throw HardwareInterfaceException(
 					"Cannot create handle '" + js.getName()
@@ -101,23 +98,10 @@ public:
 		assert(cmd_d_);
 		return *cmd_d_;
 	}
-	Robot::MotionManager * getMManager() const {
-		return m_manager_;
-	}
-	Robot::Action * getAction() const {
-		return action_;
-	}
-	Robot::Walking * getWalking() const {
-		return walking_;
-	}
-
 private:
 	double* cmd_p_;
 	double* cmd_i_;
 	double* cmd_d_;
-	Robot::MotionManager * m_manager_;
-	Robot::Action * action_;
-	Robot::Walking * walking_;
 };
 
 /** \brief Hardware interface to support commanding an array of joints.
