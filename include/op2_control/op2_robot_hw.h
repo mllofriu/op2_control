@@ -1,5 +1,5 @@
-#ifndef C_INTERFACE_H_
-#define ROBOTIS_OP_INTERFACE_H_
+#ifndef OP2_ROBOT_HW_H
+#define OP2_ROBOT_HW_H
 
 #include <boost/shared_ptr.hpp>
 #include <eigen3/Eigen/Eigen>
@@ -38,7 +38,7 @@ public:
     ~OP2RobotHW(){};
 
     // ROS Control
-    int read();
+    bool read();
     void write(bool force_write);
 
     // Motion functions

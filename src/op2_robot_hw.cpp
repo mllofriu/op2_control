@@ -33,93 +33,52 @@ const std::string OP2RobotHW::jointUIDs[JointData::NUMBER_OF_JOINTS + 3] = {
 
 OP2RobotHW::OP2RobotHW() :
 		hardware_interface::RobotHW() {
-	/**
-	 * OP Framework initialization
-	 **/
-	// Initialize ROBOTIS-OP  Framework
-//	cm730_device_ = std::string("/dev/ttyUSB0");
-//	cm730_device2_ = std::string("/dev/ttyUSB1");
-//	std::string action_file_ = std::string("/robotis/Data/motion_4096.bin");
-//	std::string config_file_ = std::string("/robotis/Data/config.ini");
-//
-//	ROS_INFO("Initializing CM730");
-//	linux_cm730_ = new LinuxCM730((char *) cm730_device_.c_str());
-//	cm730_ = new Robot::CM730(linux_cm730_);
-//	if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
-//		linux_cm730_->SetPortName((char *) cm730_device2_.c_str());
-//		if (MotionManager::GetInstance()->Initialize(cm730_) == false) {
-//			ROS_ERROR("Fail to initialize Motion Manager!");
-//			ros::shutdown();
-//		}
-//	}
-//	if ((Action::GetInstance()->LoadFile((char *) action_file_.c_str())) == false) {
-//		ROS_ERROR("Reading Action File failed!");
-//	}
-//	minIni ini = minIni(config_file_);
-//	MotionManager::GetInstance()->LoadINISettings(&ini);
-//	MotionManager::GetInstance()->AddModule(
-//			(MotionModule*) Action::GetInstance());
-//
-//	LinuxMotionTimer* motion_timer_ = new LinuxMotionTimer(
-//			MotionManager::GetInstance());
-//	motion_timer_->Start();
-//
-//	Action::GetInstance()->m_Joint.SetEnableBody(true, true);
-//	MotionManager::GetInstance()->SetEnable(true);
-//
-//	MotionManager::GetInstance()->AddModule(
-//			(MotionModule*) Walking::GetInstance());
-//	MotionManager::GetInstance()->AddModule(
-//			(MotionModule*) Head::GetInstance());
-////	MotionStatus::m_CurrentJoints.SetEnableBody(true, true);
-//	Walking::GetInstance()->LoadINISettings(&ini);
 	pkt_handler = PacketHandler::GetPacketHandler(1.0);
 	port_handler = (PortHandler*) PortHandler::GetPortHandler("/dev/ttyUSB0");
 
-	bool all_motors_present = false;
-	while (!all_motors_present) {
-		open_port();
+	open_port();
 
-		// Reset motors
-		ROS_INFO("Reset motors power");
-		int dxl_comm_result;
-		dxl_comm_result = pkt_handler->Write1ByteTxOnly(port_handler,
-				CM730::ID_CM, CM730::P_DXL_POWER, 0);
-		ros::Duration(.5).sleep();
-		dxl_comm_result = pkt_handler->Write1ByteTxOnly(port_handler,
-				CM730::ID_CM, CM730::P_DXL_POWER, 1);
-		ros::Duration(.5).sleep();
+	// Reset motors
+	ROS_INFO("Reset motors power");
+	int dxl_comm_result;
+	dxl_comm_result = pkt_handler->Write1ByteTxOnly(port_handler, CM730::ID_CM,
+			CM730::P_DXL_POWER, 0);
+	ros::Duration(1).sleep();
+	dxl_comm_result = pkt_handler->Write1ByteTxOnly(port_handler, CM730::ID_CM,
+			CM730::P_DXL_POWER, 1);
+	ros::Duration(1).sleep();
+	if (dxl_comm_result != COMM_SUCCESS)
+		ROS_ERROR("Could not activate MX-28 power");
+
+	ROS_INFO("Building bulk read packet with present motors");
+	int motor_count = 0;
+	groupBulkRead = new GroupBulkRead(port_handler, pkt_handler);
+	for (int m = 0; m < ARRAY_SIZE(active_joints); m++) {
+		UINT8_T dxl_error = 0;                                  // DXL error
+		UINT16_T dxl_model_number;                       // DXL model number
+		dxl_comm_result = COMM_TX_FAIL;
+		dxl_comm_result = pkt_handler->Ping(port_handler, active_joints[m],
+				&dxl_model_number, &dxl_error);
 		if (dxl_comm_result != COMM_SUCCESS)
-			ROS_ERROR("Could not activate MX-28 power");
-
-		ROS_INFO("Building bulk read packet with present motors");
-		int motor_count = 0;
-		groupBulkRead = new GroupBulkRead(port_handler, pkt_handler);
-		for (int m = 0; m < ARRAY_SIZE(active_joints); m++) {
-			UINT8_T dxl_error = 0;                                  // DXL error
-			UINT16_T dxl_model_number;                       // DXL model number
-			dxl_comm_result = COMM_TX_FAIL;
-			dxl_comm_result = pkt_handler->Ping(port_handler, active_joints[m],
-					&dxl_model_number, &dxl_error);
-			if (dxl_comm_result != COMM_SUCCESS)
-				ROS_INFO("Joint %id did not respond, error: %d",
-						active_joints[m], dxl_comm_result);
-			else {
-				ROS_INFO("Joint %id responded, adding it to bulk read",
+			ROS_INFO("Joint %i did not respond, error: %d", active_joints[m],
+					dxl_comm_result);
+		else {
+			ROS_INFO("Joint %id responded, adding it to bulk read",
+					active_joints[m]);
+			bool dxl_addparam_result = groupBulkRead->AddParam(active_joints[m],
+					MX28::P_PRESENT_POSITION_L, 2);
+			if (!dxl_addparam_result) {
+				ROS_ERROR("[ID:%03d] grouBulkRead addparam failed",
 						active_joints[m]);
-				bool dxl_addparam_result = groupBulkRead->AddParam(
-						active_joints[m], MX28::P_PRESENT_POSITION_L, 2);
-				if (!dxl_addparam_result) {
-					ROS_ERROR("[ID:%03d] grouBulkRead addparam failed",
-							active_joints[m]);
-				}
-				motor_count++;
-
 			}
+			motor_count++;
+
 		}
-		all_motors_present = motor_count == ARRAY_SIZE(active_joints);
-		if (!all_motors_present)
-			ROS_ERROR("Not all active motors are responding, retrying");
+	}
+	bool all_motors_present = motor_count == ARRAY_SIZE(active_joints);
+	if (!all_motors_present) {
+		ROS_ERROR("Not all active motors are responding, quitting");
+		ros::shutdown();
 	}
 
 	/**
@@ -181,20 +140,37 @@ void OP2RobotHW::open_port() {
 }
 
 void OP2RobotHW::reset_port() {
+	port_handler->ClearPort();
 	port_handler->ClosePort();
 	open_port();
 	pkt_handler->Write1ByteTxOnly(port_handler, CM730::ID_CM,
 			CM730::P_DXL_POWER, 1);
 }
 
-int OP2RobotHW::read() {
+bool OP2RobotHW::read() {
 	UINT8_T dxl_error = 0;                                  // DXL error
 	UINT16_T dxl_model_number;                               // DXL model number
+
+//	pkt_handler->Ping(port_handler, 200, &dxl_model_number, &dxl_error);
+//	ros::Duration(0.01).sleep();
 
 	int dxl_comm_result = groupBulkRead->TxRxPacket();
 	if (dxl_comm_result != COMM_SUCCESS) {
 		ROS_ERROR("Bulk read failed!");
-		return dxl_comm_result;
+//		ros::Duration(0.001).sleep();
+//		for (int m = 0; m < ARRAY_SIZE(active_joints); m++) {
+//			// Ping all motors
+//			UINT8_T dxl_error = 0;                                  // DXL error
+//			UINT16_T dxl_model_number;                       // DXL model number
+//			int dxl_comm_result = pkt_handler->Ping(port_handler,
+//					active_joints[m], &dxl_model_number, &dxl_error);
+//			if (dxl_comm_result == COMM_SUCCESS) {
+//				ROS_INFO("Ping to %d succeded", active_joints[m]);
+//			} else {
+//				ROS_INFO("Ping to %d failed", active_joints[m]);
+//			}
+//		}
+		return dxl_comm_result == COMM_SUCCESS;
 	}
 
 	for (int id = 0; id < ARRAY_SIZE(active_joints); id++) {
@@ -202,9 +178,8 @@ int OP2RobotHW::read() {
 		bool dxl_getdata_result = groupBulkRead->GetData(active_joints[id],
 				MX28::P_PRESENT_POSITION_L, &present_pos);
 		if (!dxl_getdata_result) {
-			ROS_ERROR("[ID:%03d] groupBulkRead getdata failed",
-					active_joints[id]);
-			return 1;
+			ROS_ERROR("[ID:%03d] getdata failed", active_joints[id]);
+			return COMM_RX_TIMEOUT;
 		}
 		states_[active_joints[id] - 1].pos = MX28::Value2Angle(present_pos)
 				* (M_PI / 180.0);
@@ -213,7 +188,29 @@ int OP2RobotHW::read() {
 
 	}
 
-	return COMM_SUCCESS;
+//	int ret_val = 0;
+//	bool all_fail = true;
+//	for (int id = 0; id < ARRAY_SIZE(active_joints); id++) {
+//		UINT16_T data;
+//		UINT8_T error;
+//		int read_return = pkt_handler->Read2ByteTxRx(port_handler,
+//				active_joints[id], MX28::P_PRESENT_POSITION_L, &data, &error);
+//		if (read_return == COMM_SUCCESS) {
+//			states_[active_joints[id] - 1].pos = MX28::Value2Angle(data)
+//					* (M_PI / 180.0);
+////			ROS_INFO("Successfully read joint %d, position %f", active_joints[id], states_[active_joints[id] - 1].pos);
+//			all_fail = false;
+//		} else {
+//			ROS_ERROR(
+//					"Error reading position for joint %d, read return error: %d",
+//					active_joints[id], read_return);
+//
+//		}
+//		ros::Duration(0.0005).sleep();
+//	}
+
+//	return !all_fail;
+	return dxl_comm_result == COMM_SUCCESS;
 }
 
 void OP2RobotHW::write(bool force_write) {
@@ -281,20 +278,20 @@ void* control_loop(void * params) {
 		ros::Duration elapsed_time = current_time - last_time;
 
 		if (to_skip == 0) {
-			int ret_val = op_robot_hw->read();
-			if (ret_val == 0) {
+			if (op_robot_hw->read()) {
 				cm->update(current_time, elapsed_time);
 				op_robot_hw->write(false);
-			} else
+			} else {
+				// All failed, skip a bunch of cycles
 				to_skip = 5; // skip next 5 cycles
+				op_robot_hw->reset_port();
+			}
 		} else {
 			to_skip--;
-			// If going to use it next iteration, reset the port
-			if (to_skip == 0)
-				op_robot_hw->reset_port();
+
 		}
 
-		//		ROS_INFO("Elapsed time: %li", elapsed_time.toNSec());
+		ROS_INFO("Elapsed time: %li", elapsed_time.toNSec());
 		last_time = current_time;
 	}
 }
